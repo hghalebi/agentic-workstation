@@ -1,0 +1,20 @@
+repos:
+  - repo: local
+    hooks:
+      - id: bash-syntax
+        name: bash syntax
+        entry: bash -n install-agentic-tools.sh
+        language: system
+        pass_filenames: false
+
+      - id: shellcheck
+        name: shellcheck
+        entry: shellcheck install-agentic-tools.sh
+        language: system
+        pass_filenames: false
+
+      - id: shfmt
+        name: shfmt
+        entry: shfmt -i 2 -ci -d install-agentic-tools.sh
+        language: system
+        pass_filenames: false

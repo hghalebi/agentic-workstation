@@ -1,37 +1,36 @@
 # Contributing
 
-Contributions are welcome if they keep the installer practical, auditable, and safe to rerun.
+Keep the installer practical, auditable, and safe to rerun.
 
-## Development
+## Develop
 
-Validate shell syntax:
+Run the local checks:
 
 ```bash
 bash -n install-agentic-tools.sh
-```
-
-Run ShellCheck when available:
-
-```bash
 shellcheck install-agentic-tools.sh
+shfmt -i 2 -ci -d install-agentic-tools.sh
+pre-commit run --all-files
 ```
 
-Run the installer in a disposable Ubuntu VM or container before proposing install changes.
+For installer changes, test in a disposable Ubuntu VM or container before opening a pull request.
 
-## Guidelines
+## Change Rules
 
-- Prefer official vendor install commands and link the source in `commands.md`.
-- Keep destructive or daemon-level installs opt-in.
-- Make install steps idempotent when practical.
-- Do not automate auth flows or write secrets into files.
-- Avoid hardcoded personal paths, tokens, account IDs, or organization names.
+- Prefer official vendor install commands.
+- Link every non-apt install source in `commands.md`.
+- Keep daemon-level or destructive tools opt-in.
+- Make steps idempotent when practical.
+- Do not automate auth flows.
+- Do not write credentials to disk.
+- Do not add personal paths, account IDs, tokens, or organization names.
 - Update `README.md`, `commands.md`, and `CHANGELOG.md` for user-facing changes.
 
 ## Pull Requests
 
 Include:
 
-- What tool or behavior changed.
+- What changed.
 - Why it belongs in the default layer or factory layer.
 - How you tested it.
-- Any known platform limitations.
+- Known platform limits or follow-up work.

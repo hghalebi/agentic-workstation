@@ -14,6 +14,7 @@ Environment options:
   SKIP_BROWSER_TOOLS=1              Skip Playwright browser binary install.
   INCLUDE_FACTORY_TOOLS=1           Install optional software-factory helpers.
   INCLUDE_LOCAL_MODEL_RUNTIME=1     Install Ollama when factory tools are enabled.
+  SKIP_AUTO_CONFIG=1                Skip shell, git, and local hook configuration.
   WORKSPACE_SOURCE=/path/to/workspace
                                     Copy a local workspace directory into WORKSPACE_TARGET.
   WORKSPACE_TARGET=/path/to/workspace
@@ -53,8 +54,9 @@ apt_install_base() {
   $SUDO apt-get install -y \
     ca-certificates gnupg lsb-release curl wget unzip git gh jq ripgrep fd-find fzf tmux direnv \
     make build-essential pkg-config libssl-dev python3 python3-pip python3-venv pipx \
-    nodejs golang-go \
-    shellcheck sqlite3 netcat-openbsd git-lfs age tree rsync zip
+    nodejs npm golang-go \
+    shellcheck sqlite3 netcat-openbsd git-lfs age tree rsync zip \
+    lsof strace ltrace ncdu
 
   if ! have fd && have fdfind; then
     $SUDO ln -sf /usr/bin/fdfind /usr/local/bin/fd
@@ -64,6 +66,11 @@ apt_install_base() {
 
   log "Installing optional base helpers"
   $SUDO apt-get install -y postgresql-client redis-tools dnsutils || true
+
+  log "Installing best-effort developer diagnostics"
+  for pkg in bats shfmt hyperfine duf pre-commit; do
+    $SUDO apt-get install -y "$pkg" || log "Could not install optional apt package: $pkg"
+  done
 }
 
 install_rust() {
@@ -89,6 +96,74 @@ install_uv() {
   log "Installing uv"
   curl -LsSf https://astral.sh/uv/install.sh | sh
   export PATH="${HOME_DIR}/.local/bin:${PATH}"
+}
+
+install_mise() {
+  if have mise; then
+    log "mise already installed"
+    mise --version || true
+    return
+  fi
+
+  log "Installing mise"
+  if [[ "$(id -u)" -eq 0 ]]; then
+    curl -fsSL https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
+  else
+    curl -fsSL https://mise.run | sh
+    if [[ -x "${HOME_DIR}/.local/bin/mise" ]]; then
+      $SUDO ln -sf "${HOME_DIR}/.local/bin/mise" /usr/local/bin/mise
+    fi
+  fi
+}
+
+install_aqua() {
+  if have aqua; then
+    log "aqua already installed"
+    aqua --version || true
+    return
+  fi
+
+  log "Installing aqua"
+  tmpdir="$(mktemp -d)"
+  curl -fsSLo "${tmpdir}/aqua-installer" "https://raw.githubusercontent.com/aquaproj/aqua-installer/v4.0.2/aqua-installer"
+  echo "98b883756cdd0a6807a8c7623404bfc3bc169275ad9064dc23a6e24ad398f43d  ${tmpdir}/aqua-installer" | sha256sum -c -
+  chmod +x "${tmpdir}/aqua-installer"
+
+  if [[ "$(id -u)" -eq 0 ]]; then
+    AQUA_ROOT_DIR=/opt/aquaproj-aqua "${tmpdir}/aqua-installer"
+    $SUDO ln -sf /opt/aquaproj-aqua/bin/aqua /usr/local/bin/aqua
+  else
+    "${tmpdir}/aqua-installer"
+    if [[ -x "${HOME_DIR}/.local/share/aquaproj-aqua/bin/aqua" ]]; then
+      $SUDO ln -sf "${HOME_DIR}/.local/share/aquaproj-aqua/bin/aqua" /usr/local/bin/aqua
+    fi
+  fi
+
+  rm -rf "$tmpdir"
+}
+
+install_yaml_and_git_helpers() {
+  if have yq; then
+    log "yq already installed"
+    yq --version || true
+  else
+    log "Installing yq"
+    go install github.com/mikefarah/yq/v4@latest
+    if [[ -x "${HOME_DIR}/go/bin/yq" ]]; then
+      $SUDO ln -sf "${HOME_DIR}/go/bin/yq" /usr/local/bin/yq
+    fi
+  fi
+
+  if have delta; then
+    log "delta already installed"
+    delta --version || true
+  else
+    log "Installing delta"
+    cargo install --locked git-delta
+    if [[ -x "${HOME_DIR}/.cargo/bin/delta" ]]; then
+      $SUDO ln -sf "${HOME_DIR}/.cargo/bin/delta" /usr/local/bin/delta
+    fi
+  fi
 }
 
 install_node_globals() {
@@ -165,6 +240,9 @@ install_factory_helpers() {
   log "Installing software factory helper CLIs"
   $SUDO apt-get update -y
   $SUDO apt-get install -y pandoc poppler-utils ffmpeg imagemagick tesseract-ocr httpie shellcheck yamllint
+  for pkg in bpftrace linux-tools-common linux-tools-generic; do
+    $SUDO apt-get install -y "$pkg" || log "Could not install optional apt package: $pkg"
+  done
 
   $SUDO npm install -g @go-task/cli snyk
 
@@ -189,6 +267,50 @@ install_factory_helpers() {
   if [[ "${INCLUDE_LOCAL_MODEL_RUNTIME:-0}" == "1" ]] && ! have ollama; then
     curl -fsSL https://ollama.com/install.sh | sh
   fi
+
+  install_supply_chain_helpers
+}
+
+install_supply_chain_helpers() {
+  log "Installing supply-chain and container analysis helpers"
+
+  if ! have syft; then
+    curl -sSfL https://get.anchore.io/syft | $SUDO sh -s -- -b /usr/local/bin
+  fi
+
+  if ! have grype; then
+    curl -sSfL https://get.anchore.io/grype | $SUDO sh -s -- -b /usr/local/bin
+  fi
+
+  if ! have cosign; then
+    go install github.com/sigstore/cosign/v3/cmd/cosign@latest
+    if [[ -x "${HOME_DIR}/go/bin/cosign" ]]; then
+      $SUDO ln -sf "${HOME_DIR}/go/bin/cosign" /usr/local/bin/cosign
+    fi
+  fi
+
+  if ! have trivy; then
+    wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | $SUDO gpg --dearmor -o /usr/share/keyrings/trivy.gpg
+    echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | $SUDO tee /etc/apt/sources.list.d/trivy.list >/dev/null
+    $SUDO apt-get update -y
+    $SUDO apt-get install -y trivy
+  fi
+
+  if ! have hadolint; then
+    case "$(uname -m)" in
+      x86_64 | amd64) hadolint_asset="hadolint-Linux-x86_64" ;;
+      aarch64 | arm64) hadolint_asset="hadolint-Linux-arm64" ;;
+      *)
+        echo "Unsupported hadolint architecture: $(uname -m)" >&2
+        return 1
+        ;;
+    esac
+    tmpdir="$(mktemp -d)"
+    curl -fsSLo "${tmpdir}/hadolint" "https://github.com/hadolint/hadolint/releases/latest/download/${hadolint_asset}"
+    chmod +x "${tmpdir}/hadolint"
+    $SUDO mv "${tmpdir}/hadolint" /usr/local/bin/hadolint
+    rm -rf "$tmpdir"
+  fi
 }
 
 install_1password_cli() {
@@ -201,8 +323,11 @@ install_1password_cli() {
   log "Installing 1Password CLI server binary"
   ARCH="$(dpkg --print-architecture)"
   case "$ARCH" in
-    amd64|386|arm|arm64) ;;
-    *) echo "Unsupported 1Password CLI architecture: $ARCH" >&2; return 1 ;;
+    amd64 | 386 | arm | arm64) ;;
+    *)
+      echo "Unsupported 1Password CLI architecture: $ARCH" >&2
+      return 1
+      ;;
   esac
 
   OP_VERSION="v$(curl -fsSL https://app-updates.agilebits.com/check/1/0/CLI2/en/2.0.0/N | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n1)"
@@ -266,9 +391,79 @@ migrate_workspace() {
   $SUDO cp -a "$WORKSPACE_SOURCE" "$workspace_target"
 }
 
-verify_tools() {
-  log "Version checks"
-  for cmd in git gh curl jq rg fd fzf tmux zellij direnv make task just gcc shellcheck yamllint sqlite3 psql redis-cli dig nc git-lfs age tree rsync pandoc pdftotext ffmpeg convert tesseract http python3 pipx node npm npx go rustc cargo uv uvx codex claude gemini copilot op gcloud hcloud neonctl clasp gws opencode openclaw aider llm openhands deepagents hf dvc semgrep snyk gitleaks ollama hc; do
+append_shell_block() {
+  local profile_path="$1"
+  local shell_name="$2"
+
+  if [[ -f "$profile_path" ]] && grep -q "agentic-workstation begin" "$profile_path"; then
+    return
+  fi
+
+  mkdir -p "$(dirname "$profile_path")"
+  cat >>"$profile_path" <<EOF
+
+# agentic-workstation begin
+export PATH="\$HOME/.local/bin:\$HOME/.cargo/bin:\$HOME/go/bin:\$PATH"
+if command -v mise >/dev/null 2>&1; then
+  eval "\$(mise activate ${shell_name})"
+fi
+# agentic-workstation end
+EOF
+}
+
+configure_shell_environment() {
+  log "Configuring shell PATH and mise activation"
+  append_shell_block "${HOME_DIR}/.profile" bash
+  append_shell_block "${HOME_DIR}/.bashrc" bash
+
+  if [[ -f "${HOME_DIR}/.zshrc" ]]; then
+    append_shell_block "${HOME_DIR}/.zshrc" zsh
+  fi
+}
+
+git_config_if_unset() {
+  local key="$1"
+  local value="$2"
+
+  if ! git config --global --get "$key" >/dev/null 2>&1; then
+    git config --global "$key" "$value"
+  fi
+}
+
+configure_git_defaults() {
+  if ! have git || ! have delta; then
+    return
+  fi
+
+  log "Configuring git defaults for delta"
+  git_config_if_unset core.pager "delta"
+  git_config_if_unset interactive.diffFilter "delta --color-only"
+  git_config_if_unset delta.navigate true
+  git_config_if_unset merge.conflictStyle zdiff3
+}
+
+configure_local_hooks() {
+  if [[ -f .pre-commit-config.yaml ]] && have pre-commit && [[ -d .git ]]; then
+    log "Installing local pre-commit hooks"
+    pre-commit install || log "pre-commit hook installation failed; continuing"
+  fi
+}
+
+configure_workstation() {
+  if [[ "${SKIP_AUTO_CONFIG:-0}" == "1" ]]; then
+    log "Skipping auto configuration because SKIP_AUTO_CONFIG=1"
+    return
+  fi
+
+  configure_shell_environment
+  configure_git_defaults
+  configure_local_hooks
+}
+
+verify_tool_group() {
+  log "$1"
+  shift
+  for cmd in "$@"; do
     if have "$cmd"; then
       printf '%-10s %s\n' "$cmd" "$(command -v "$cmd")"
     else
@@ -277,10 +472,29 @@ verify_tools() {
   done
 }
 
+verify_tools() {
+  verify_tool_group "Default tool checks" \
+    git gh curl wget jq yq rg fd fzf tmux zellij direnv make gcc shellcheck shfmt bats sqlite3 psql redis-cli dig nc lsof strace ltrace git-lfs age tree rsync zip ncdu duf hyperfine pre-commit delta \
+    python3 pipx node npm npx go rustc cargo uv uvx mise aqua \
+    codex claude gemini copilot op gcloud hcloud neonctl clasp gws opencode openclaw aider llm openhands codeagents hc
+
+  if [[ "${INCLUDE_FACTORY_TOOLS:-0}" == "1" ]]; then
+    verify_tool_group "Factory tool checks" \
+      task just yamllint pandoc pdftotext ffmpeg convert tesseract http deepagents hf dvc semgrep snyk gitleaks syft grype cosign trivy hadolint bpftrace perf
+  fi
+
+  if [[ "${INCLUDE_LOCAL_MODEL_RUNTIME:-0}" == "1" ]]; then
+    verify_tool_group "Local model runtime checks" ollama
+  fi
+}
+
 main() {
   apt_install_base
   install_rust
   install_uv
+  install_mise
+  install_aqua
+  install_yaml_and_git_helpers
   install_node_globals
   install_python_agent_tools
   install_browser_helpers
@@ -291,9 +505,10 @@ main() {
   install_gcloud_cli
   install_harness_cli
   migrate_workspace
+  configure_workstation
   verify_tools
 
-  log "Install pass complete. Run the auth commands in README.md next."
+  log "Install pass complete. Open a new shell, then run the auth commands in README.md."
 }
 
 main "$@"
