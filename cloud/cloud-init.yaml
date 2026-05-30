@@ -8,6 +8,7 @@ users:
     shell: /bin/bash
     sudo: ALL=(ALL) NOPASSWD:ALL
     ssh_authorized_keys:
+      # Replace this placeholder before using the file with a cloud provider.
       - ssh-ed25519 REPLACE_WITH_PUBLIC_KEY
 
 write_files:

@@ -28,7 +28,7 @@ docker build -f tests/Dockerfile.ubuntu-24.04 .
 - Do not automate auth flows.
 - Do not write credentials to disk.
 - Do not add personal paths, account IDs, tokens, or organization names.
-- Update `README.md`, `commands.md`, and `CHANGELOG.md` for user-facing changes.
+- Update `README.md`, `commands.md`, `docs/`, and `CHANGELOG.md` for user-facing changes.
 
 ## Pull Requests
 

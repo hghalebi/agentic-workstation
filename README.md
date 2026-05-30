@@ -252,9 +252,9 @@ hf auth login
 Run:
 
 ```bash
-bash -n install-agentic-tools.sh
-shellcheck install-agentic-tools.sh
-shfmt -i 2 -ci -d install-agentic-tools.sh
+bash -n install-agentic-tools.sh scripts/*.sh cloud/*.sh
+shellcheck install-agentic-tools.sh scripts/*.sh cloud/*.sh
+shfmt -i 2 -ci -d install-agentic-tools.sh scripts/*.sh cloud/*.sh
 pre-commit run --all-files
 ```
 

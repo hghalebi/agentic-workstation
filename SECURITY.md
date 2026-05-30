@@ -29,6 +29,8 @@ Security-sensitive areas:
 - Secret-management instructions.
 - Auth instructions.
 - Auto-configuration that mutates shell, Git, SSH, or tool config.
+- Cloud-init user-data and snapshot cleanup.
+- Manifest generation under `/var/lib/agentic-workstation`.
 
 ## Secret Handling
 
