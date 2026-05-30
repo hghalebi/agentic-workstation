@@ -1,0 +1,29 @@
+# OS/editor
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Logs and temp files
+*.log
+tmp/
+temp/
+.cache/
+
+# Local env/secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Build artifacts
+dist/
+build/
+target/
+node_modules/
+__pycache__/
+*.pyc
