@@ -8,12 +8,16 @@ Run the local checks:
 
 ```bash
 bash -n install-agentic-tools.sh
-shellcheck install-agentic-tools.sh
-shfmt -i 2 -ci -d install-agentic-tools.sh
+shellcheck install-agentic-tools.sh scripts/*.sh
+shfmt -i 2 -ci -d install-agentic-tools.sh scripts/*.sh
 pre-commit run --all-files
 ```
 
 For installer changes, test in a disposable Ubuntu VM or container before opening a pull request.
+
+```bash
+docker build -f tests/Dockerfile.ubuntu-24.04 .
+```
 
 ## Change Rules
 

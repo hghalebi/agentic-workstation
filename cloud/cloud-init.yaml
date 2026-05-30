@@ -1,0 +1,37 @@
+#cloud-config
+package_update: true
+package_upgrade: false
+
+users:
+  - name: hamze
+    groups: sudo
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ssh-ed25519 REPLACE_WITH_PUBLIC_KEY
+
+write_files:
+  - path: /opt/agentic-workstation/first-boot.sh
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      export DEBIAN_FRONTEND=noninteractive
+      export AGENTIC_PROFILE="${AGENTIC_PROFILE:-coding-agent}"
+      export SKIP_BROWSER_TOOLS="${SKIP_BROWSER_TOOLS:-1}"
+
+      apt-get update -y
+      apt-get install -y git curl ca-certificates
+
+      if [[ ! -d /opt/agentic-workstation/repo/.git ]]; then
+        git clone https://github.com/hghalebi/agentic-workstation.git /opt/agentic-workstation/repo
+      fi
+
+      cd /opt/agentic-workstation/repo
+      git pull --ff-only || true
+
+      ./install-agentic-tools.sh --profile "${AGENTIC_PROFILE}" --resume
+
+runcmd:
+  - [bash, /opt/agentic-workstation/first-boot.sh]

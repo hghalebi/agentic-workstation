@@ -8,7 +8,7 @@ usage() {
 Agentic Workstation installer
 
 Usage:
-  ./install-agentic-tools.sh
+  ./install-agentic-tools.sh [--profile PROFILE] [--resume] [--only MODULES] [--skip MODULES]
 
 Environment options:
   SKIP_BROWSER_TOOLS=1              Skip Playwright browser binary install.
@@ -19,18 +19,18 @@ Environment options:
                                     Copy a local workspace directory into WORKSPACE_TARGET.
   WORKSPACE_TARGET=/path/to/workspace
                                     Destination for workspace migration.
+  WORKSPACE_REPO=git@example/repo.git
+                                    Clone or update a Git workspace.
+  WORKSPACE_REF=main                Branch, tag, or ref for WORKSPACE_REPO.
 
 Examples:
   ./install-agentic-tools.sh
-  SKIP_BROWSER_TOOLS=1 ./install-agentic-tools.sh
-  INCLUDE_FACTORY_TOOLS=1 ./install-agentic-tools.sh
+  ./install-agentic-tools.sh --profile minimal
+  ./install-agentic-tools.sh --profile factory --resume
+  ./install-agentic-tools.sh --only base,runtimes,agents
+  SKIP_BROWSER_TOOLS=1 ./install-agentic-tools.sh --profile coding-agent
 USAGE
 }
-
-if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-  usage
-  exit 0
-fi
 
 if [[ "$(id -u)" -eq 0 ]]; then
   SUDO=""
@@ -40,12 +40,149 @@ else
   HOME_DIR="${HOME}"
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROFILE="${PROFILE:-coding-agent}"
+ONLY_MODULES=""
+SKIP_MODULES=""
+RESUME=0
+RUN_DOCTOR=1
+STATE_DIR="${STATE_DIR:-/var/lib/agentic-workstation}"
+MANIFEST_PATH="${MANIFEST_PATH:-${STATE_DIR}/manifest.json}"
+
 log() {
   printf '\n==> %s\n' "$*"
 }
 
 have() {
   command -v "$1" >/dev/null 2>&1
+}
+
+die() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+parse_args() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -h | --help)
+        usage
+        exit 0
+        ;;
+      --profile)
+        [[ $# -ge 2 ]] || die "--profile requires a value"
+        PROFILE="$2"
+        shift 2
+        ;;
+      --profile=*)
+        PROFILE="${1#*=}"
+        shift
+        ;;
+      --only)
+        [[ $# -ge 2 ]] || die "--only requires a comma-separated module list"
+        ONLY_MODULES="$2"
+        shift 2
+        ;;
+      --only=*)
+        ONLY_MODULES="${1#*=}"
+        shift
+        ;;
+      --skip)
+        [[ $# -ge 2 ]] || die "--skip requires a comma-separated module list"
+        SKIP_MODULES="$2"
+        shift 2
+        ;;
+      --skip=*)
+        SKIP_MODULES="${1#*=}"
+        shift
+        ;;
+      --resume)
+        RESUME=1
+        shift
+        ;;
+      --no-doctor)
+        RUN_DOCTOR=0
+        shift
+        ;;
+      *)
+        die "unknown argument: $1"
+        ;;
+    esac
+  done
+}
+
+load_profile() {
+  local profile_path="${SCRIPT_DIR}/profiles/${PROFILE}.env"
+  [[ -f "$profile_path" ]] || die "unknown profile: ${PROFILE}"
+
+  log "Loading profile: ${PROFILE}"
+  # shellcheck disable=SC1090
+  source "$profile_path"
+
+  if [[ "${INCLUDE_FACTORY_TOOLS:-0}" == "1" ]]; then
+    INSTALL_FACTORY_TOOLS=1
+    INSTALL_SECURITY_TOOLS=1
+  fi
+  if [[ "${INCLUDE_LOCAL_MODEL_RUNTIME:-0}" == "1" ]]; then
+    INSTALL_FACTORY_TOOLS=1
+    INSTALL_LOCAL_MODEL_RUNTIME=1
+  fi
+  if [[ "${SKIP_BROWSER_TOOLS:-0}" == "1" ]]; then
+    INSTALL_BROWSER_TOOLS=0
+  fi
+  if [[ "${SKIP_AUTO_CONFIG:-0}" == "1" ]]; then
+    AUTO_CONFIG=0
+  fi
+}
+
+csv_contains() {
+  local list="$1"
+  local value="$2"
+  [[ ",${list}," == *",${value},"* ]]
+}
+
+should_run_module() {
+  local module="$1"
+  if [[ -n "$ONLY_MODULES" ]] && ! csv_contains "$ONLY_MODULES" "$module"; then
+    return 1
+  fi
+  if [[ -n "$SKIP_MODULES" ]] && csv_contains "$SKIP_MODULES" "$module"; then
+    return 1
+  fi
+  return 0
+}
+
+module_marker() {
+  printf '%s/installed/%s' "$STATE_DIR" "$1"
+}
+
+mark_done() {
+  local module="$1"
+  $SUDO mkdir -p "${STATE_DIR}/installed"
+  date -Is | $SUDO tee "$(module_marker "$module")" >/dev/null
+}
+
+is_done() {
+  [[ -f "$(module_marker "$1")" ]]
+}
+
+run_module() {
+  local module="$1"
+  local fn="$2"
+  shift 2
+
+  if ! should_run_module "$module"; then
+    log "Skipping module: ${module}"
+    return
+  fi
+
+  if [[ "$RESUME" == "1" ]] && is_done "$module"; then
+    log "Skipping completed module: ${module}"
+    return
+  fi
+
+  "$fn" "$@"
+  mark_done "$module"
 }
 
 apt_install_base() {
@@ -98,6 +235,11 @@ install_uv() {
   export PATH="${HOME_DIR}/.local/bin:${PATH}"
 }
 
+install_runtimes() {
+  install_rust
+  install_uv
+}
+
 install_mise() {
   if have mise; then
     log "mise already installed"
@@ -140,6 +282,11 @@ install_aqua() {
   fi
 
   rm -rf "$tmpdir"
+}
+
+install_version_managers() {
+  install_mise
+  install_aqua
 }
 
 install_yaml_and_git_helpers() {
@@ -192,9 +339,14 @@ install_python_agent_tools() {
   uv tool install --force openhands --python 3.12
 }
 
+install_agent_clis() {
+  install_node_globals
+  install_python_agent_tools
+}
+
 install_browser_helpers() {
-  if [[ "${SKIP_BROWSER_TOOLS:-0}" == "1" ]]; then
-    log "Skipping Playwright browser install because SKIP_BROWSER_TOOLS=1"
+  if [[ "${INSTALL_BROWSER_TOOLS:-0}" != "1" ]]; then
+    log "Skipping Playwright browser install for profile ${PROFILE}"
     return
   fi
 
@@ -217,6 +369,11 @@ install_cloud_provider_helpers() {
   fi
 }
 
+install_cloud_clis() {
+  install_cloud_provider_helpers
+  install_gcloud_cli
+}
+
 install_terminal_workspace_helpers() {
   if have zellij; then
     log "Zellij already installed"
@@ -232,8 +389,8 @@ install_terminal_workspace_helpers() {
 }
 
 install_factory_helpers() {
-  if [[ "${INCLUDE_FACTORY_TOOLS:-0}" != "1" ]]; then
-    log "Skipping software factory helpers; set INCLUDE_FACTORY_TOOLS=1 to enable"
+  if [[ "${INSTALL_FACTORY_TOOLS:-0}" != "1" ]]; then
+    log "Skipping software factory helpers for profile ${PROFILE}"
     return
   fi
 
@@ -264,11 +421,13 @@ install_factory_helpers() {
     curl -LsSf https://hf.co/cli/install.sh | bash
   fi
 
-  if [[ "${INCLUDE_LOCAL_MODEL_RUNTIME:-0}" == "1" ]] && ! have ollama; then
+  if [[ "${INSTALL_LOCAL_MODEL_RUNTIME:-0}" == "1" ]] && ! have ollama; then
     curl -fsSL https://ollama.com/install.sh | sh
   fi
 
-  install_supply_chain_helpers
+  if [[ "${INSTALL_SECURITY_TOOLS:-0}" == "1" ]]; then
+    install_supply_chain_helpers
+  fi
 }
 
 install_supply_chain_helpers() {
@@ -372,23 +531,50 @@ install_harness_cli() {
 migrate_workspace() {
   if [[ -z "${WORKSPACE_SOURCE:-}" ]]; then
     log "Skipping workspace migration; set WORKSPACE_SOURCE=/path/to/workspace to enable"
+  else
+    local workspace_target="${WORKSPACE_TARGET:-${HOME_DIR}/workspace}"
+
+    if [[ ! -e "$WORKSPACE_SOURCE" ]]; then
+      echo "WORKSPACE_SOURCE does not exist: $WORKSPACE_SOURCE" >&2
+      return 1
+    fi
+
+    if [[ -e "$workspace_target" ]]; then
+      log "$workspace_target already exists; skipping workspace migration"
+    else
+      log "Migrating workspace to $workspace_target"
+      $SUDO cp -a "$WORKSPACE_SOURCE" "$workspace_target"
+    fi
+  fi
+}
+
+hydrate_workspace_repo() {
+  if [[ -z "${WORKSPACE_REPO:-}" ]]; then
+    log "Skipping workspace repo hydration; set WORKSPACE_REPO to enable"
     return
   fi
 
-  local workspace_target="${WORKSPACE_TARGET:-${HOME_DIR}/workspace}"
+  local repo_name
+  repo_name="$(basename "$WORKSPACE_REPO" .git)"
+  local workspace_target="${WORKSPACE_TARGET:-${HOME_DIR}/workspace/${repo_name}}"
+  local workspace_ref="${WORKSPACE_REF:-main}"
 
-  if [[ ! -e "$WORKSPACE_SOURCE" ]]; then
-    echo "WORKSPACE_SOURCE does not exist: $WORKSPACE_SOURCE" >&2
-    return 1
+  mkdir -p "$(dirname "$workspace_target")"
+
+  if [[ ! -d "${workspace_target}/.git" ]]; then
+    log "Cloning workspace repo into $workspace_target"
+    git clone "$WORKSPACE_REPO" "$workspace_target"
   fi
 
-  if [[ -e "$workspace_target" ]]; then
-    log "$workspace_target already exists; skipping workspace migration"
-    return
-  fi
+  log "Updating workspace repo to ${workspace_ref}"
+  git -C "$workspace_target" fetch --all --prune
+  git -C "$workspace_target" checkout "$workspace_ref"
+  git -C "$workspace_target" pull --ff-only || log "Workspace pull skipped or not fast-forwardable"
+}
 
-  log "Migrating workspace to $workspace_target"
-  $SUDO cp -a "$WORKSPACE_SOURCE" "$workspace_target"
+hydrate_workspace() {
+  migrate_workspace
+  hydrate_workspace_repo
 }
 
 append_shell_block() {
@@ -450,8 +636,8 @@ configure_local_hooks() {
 }
 
 configure_workstation() {
-  if [[ "${SKIP_AUTO_CONFIG:-0}" == "1" ]]; then
-    log "Skipping auto configuration because SKIP_AUTO_CONFIG=1"
+  if [[ "${AUTO_CONFIG:-1}" != "1" ]]; then
+    log "Skipping auto configuration for profile ${PROFILE}"
     return
   fi
 
@@ -478,37 +664,112 @@ verify_tools() {
     python3 pipx node npm npx go rustc cargo uv uvx mise aqua \
     codex claude gemini copilot op gcloud hcloud neonctl clasp gws opencode openclaw aider llm openhands codeagents hc
 
-  if [[ "${INCLUDE_FACTORY_TOOLS:-0}" == "1" ]]; then
+  if [[ "${INSTALL_FACTORY_TOOLS:-0}" == "1" ]]; then
     verify_tool_group "Factory tool checks" \
       task just yamllint pandoc pdftotext ffmpeg convert tesseract http deepagents hf dvc semgrep snyk gitleaks syft grype cosign trivy hadolint bpftrace perf
   fi
 
-  if [[ "${INCLUDE_LOCAL_MODEL_RUNTIME:-0}" == "1" ]]; then
+  if [[ "${INSTALL_LOCAL_MODEL_RUNTIME:-0}" == "1" ]]; then
     verify_tool_group "Local model runtime checks" ollama
   fi
 }
 
-main() {
-  apt_install_base
-  install_rust
-  install_uv
-  install_mise
-  install_aqua
-  install_yaml_and_git_helpers
-  install_node_globals
-  install_python_agent_tools
-  install_browser_helpers
-  install_cloud_provider_helpers
-  install_terminal_workspace_helpers
-  install_factory_helpers
-  install_1password_cli
-  install_gcloud_cli
-  install_harness_cli
-  migrate_workspace
-  configure_workstation
-  verify_tools
+tool_version() {
+  local cmd="$1"
+  shift
+  if have "$cmd"; then
+    "$@" 2>/dev/null | head -n1 || true
+  fi
+}
 
-  log "Install pass complete. Open a new shell, then run the auth commands in README.md."
+write_manifest() {
+  log "Writing install manifest"
+  $SUDO mkdir -p "$STATE_DIR"
+
+  local os_id="unknown"
+  if [[ -r /etc/os-release ]]; then
+    # shellcheck disable=SC1091
+    source /etc/os-release
+    os_id="${ID:-unknown}-${VERSION_ID:-unknown}"
+  fi
+
+  local tmpfile
+  tmpfile="$(mktemp)"
+  jq -n \
+    --arg profile "$PROFILE" \
+    --arg installed_at "$(date -Is)" \
+    --arg hostname "$(hostname)" \
+    --arg os "$os_id" \
+    --arg git "$(tool_version git git --version)" \
+    --arg node "$(tool_version node node --version)" \
+    --arg npm "$(tool_version npm npm --version)" \
+    --arg python "$(tool_version python3 python3 --version)" \
+    --arg uv "$(tool_version uv uv --version)" \
+    --arg go "$(tool_version go go version)" \
+    --arg rustc "$(tool_version rustc rustc --version)" \
+    --arg cargo "$(tool_version cargo cargo --version)" \
+    --arg gh "$(tool_version gh gh --version)" \
+    --arg op "$(tool_version op op --version)" \
+    --arg codex "$(tool_version codex codex --version)" \
+    --arg claude "$(tool_version claude claude --version)" \
+    '{
+      profile: $profile,
+      installed_at: $installed_at,
+      hostname: $hostname,
+      os: $os,
+      tools: {
+        git: $git,
+        node: $node,
+        npm: $npm,
+        python: $python,
+        uv: $uv,
+        go: $go,
+        rustc: $rustc,
+        cargo: $cargo,
+        gh: $gh,
+        op: $op,
+        codex: $codex,
+        claude: $claude
+      }
+    }' >"$tmpfile"
+
+  $SUDO install -m 0644 "$tmpfile" "$MANIFEST_PATH"
+  rm -f "$tmpfile"
+}
+
+run_doctor() {
+  if [[ "$RUN_DOCTOR" != "1" ]]; then
+    return
+  fi
+  if [[ -x "${SCRIPT_DIR}/scripts/doctor.sh" ]]; then
+    "${SCRIPT_DIR}/scripts/doctor.sh" --profile "$PROFILE"
+  fi
+}
+
+main() {
+  parse_args "$@"
+  load_profile
+
+  [[ "${INSTALL_BASE:-0}" == "1" ]] && run_module base apt_install_base
+  [[ "${INSTALL_RUNTIMES:-0}" == "1" ]] && run_module runtimes install_runtimes
+  [[ "${INSTALL_VERSION_MANAGERS:-0}" == "1" ]] && run_module version-managers install_version_managers
+  [[ "${INSTALL_GIT_HELPERS:-0}" == "1" ]] && run_module git-helpers install_yaml_and_git_helpers
+  [[ "${INSTALL_AGENT_CLIS:-0}" == "1" ]] && run_module agents install_agent_clis
+  [[ "${INSTALL_BROWSER_TOOLS:-0}" == "1" ]] && run_module browser install_browser_helpers
+  [[ "${INSTALL_CLOUD_CLIS:-0}" == "1" ]] && run_module cloud install_cloud_clis
+  [[ "${INSTALL_TERMINAL_TOOLS:-0}" == "1" ]] && run_module terminal install_terminal_workspace_helpers
+  if [[ "${INSTALL_FACTORY_TOOLS:-0}" == "1" || "${INSTALL_SECURITY_TOOLS:-0}" == "1" || "${INSTALL_LOCAL_MODEL_RUNTIME:-0}" == "1" ]]; then
+    run_module factory install_factory_helpers
+  fi
+  [[ "${INSTALL_ONEPASSWORD:-0}" == "1" ]] && run_module onepassword install_1password_cli
+  [[ "${INSTALL_HARNESS:-0}" == "1" ]] && run_module harness install_harness_cli
+  run_module workspace hydrate_workspace
+  run_module config configure_workstation
+  run_module manifest write_manifest
+  verify_tools
+  run_doctor
+
+  log "Install pass complete. Open a new shell, then run scripts/auth-status.sh after login."
 }
 
 main "$@"

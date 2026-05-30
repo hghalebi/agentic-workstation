@@ -12,10 +12,10 @@ jobs:
       - name: Install check tools
         run: sudo apt-get update && sudo apt-get install -y shellcheck shfmt pre-commit
       - name: Syntax check
-        run: bash -n install-agentic-tools.sh
+        run: bash -n install-agentic-tools.sh scripts/*.sh cloud/*.sh
       - name: ShellCheck
-        run: shellcheck install-agentic-tools.sh
+        run: shellcheck install-agentic-tools.sh scripts/*.sh cloud/*.sh
       - name: shfmt
-        run: shfmt -i 2 -ci -d install-agentic-tools.sh
+        run: shfmt -i 2 -ci -d install-agentic-tools.sh scripts/*.sh cloud/*.sh
       - name: pre-commit
         run: pre-commit run --all-files

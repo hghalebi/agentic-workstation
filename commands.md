@@ -4,6 +4,25 @@ This page lists the commands embedded in `install-agentic-tools.sh`.
 
 Use it to audit what the installer runs, update vendor sources, or install a subset manually.
 
+## Installer Interface
+
+```bash
+./install-agentic-tools.sh --profile coding-agent
+./install-agentic-tools.sh --profile factory --resume
+./install-agentic-tools.sh --only agents
+./install-agentic-tools.sh --skip browser
+WORKSPACE_REPO=git@github.com:hghalebi/project.git WORKSPACE_REF=main ./install-agentic-tools.sh --profile agent-runner
+```
+
+Health and lifecycle commands:
+
+```bash
+./scripts/doctor.sh --profile coding-agent
+./scripts/auth-status.sh
+./scripts/prepare-snapshot.sh
+docker build -f tests/Dockerfile.ubuntu-24.04 .
+```
+
 ## Ubuntu Base
 
 ```bash

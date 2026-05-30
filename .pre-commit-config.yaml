@@ -3,18 +3,18 @@ repos:
     hooks:
       - id: bash-syntax
         name: bash syntax
-        entry: bash -n install-agentic-tools.sh
+        entry: bash -c 'bash -n install-agentic-tools.sh scripts/*.sh cloud/*.sh'
         language: system
         pass_filenames: false
 
       - id: shellcheck
         name: shellcheck
-        entry: shellcheck install-agentic-tools.sh
+        entry: bash -c 'shellcheck install-agentic-tools.sh scripts/*.sh cloud/*.sh'
         language: system
         pass_filenames: false
 
       - id: shfmt
         name: shfmt
-        entry: shfmt -i 2 -ci -d install-agentic-tools.sh
+        entry: bash -c 'shfmt -i 2 -ci -d install-agentic-tools.sh scripts/*.sh cloud/*.sh'
         language: system
         pass_filenames: false

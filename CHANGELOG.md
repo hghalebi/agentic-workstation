@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Added profile-based installation with `--profile`, `--only`, `--skip`, and `--resume`.
+- Added install markers and `/var/lib/agentic-workstation/manifest.json`.
+- Added workspace Git hydration through `WORKSPACE_REPO`, `WORKSPACE_REF`, and `WORKSPACE_TARGET`.
+- Added `scripts/doctor.sh`, `scripts/auth-status.sh`, `scripts/prepare-snapshot.sh`, and module wrapper scripts.
+- Added cloud-init, Hetzner VM creation helper, Packer stubs, Docker smoke test, and `justfile`.
+- Added `profiles/`, `config/mise.toml`, and `config/aqua.yaml`.
+- Added docs for profiles, auth, and VM lifecycle.
 - Added `mise`, `aqua`, `yq`, `delta`, `pre-commit`, `shfmt`, `bats`, diagnostics, and disk inspection tools.
 - Added factory-layer supply-chain tooling: Syft, Grype, Cosign, Trivy, Hadolint, `bpftrace`, and `perf`.
 - Added low-risk auto-configuration with `SKIP_AUTO_CONFIG=1`.

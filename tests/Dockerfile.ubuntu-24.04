@@ -1,0 +1,20 @@
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y sudo git curl ca-certificates shellcheck shfmt
+
+WORKDIR /repo
+COPY . .
+
+RUN bash -n install-agentic-tools.sh
+RUN shellcheck install-agentic-tools.sh scripts/*.sh
+RUN shfmt -i 2 -ci -d install-agentic-tools.sh scripts/*.sh
+
+# Full install tests are intentionally opt-in because they download many tools.
+# docker build --build-arg RUN_INSTALL=1 -f tests/Dockerfile.ubuntu-24.04 .
+ARG RUN_INSTALL=0
+RUN if [ "$RUN_INSTALL" = "1" ]; then \
+      SKIP_BROWSER_TOOLS=1 SKIP_AUTO_CONFIG=1 ./install-agentic-tools.sh --profile minimal --no-doctor; \
+      ./scripts/doctor.sh --profile minimal; \
+    fi

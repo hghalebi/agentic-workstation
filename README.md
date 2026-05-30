@@ -1,8 +1,14 @@
 # Agentic Workstation
 
-Install a practical Ubuntu workstation for agentic software development.
+Build repeatable Ubuntu workstations for agentic software development.
 
-The installer is a single Bash script. It installs coding agents, model CLIs, cloud/database CLIs, shell tooling, debuggers, security scanners, and documentation/artifact tools. It also applies a small set of reversible local defaults.
+The repo is a layered workstation factory:
+
+```text
+base image -> cloud-init -> profile install -> workspace hydration -> health checks
+```
+
+The Bash installer still works as the main entrypoint. Profiles, helper scripts, cloud-init, manifests, and snapshot cleanup make it usable across many VMs.
 
 ## Requirements
 
@@ -21,7 +27,7 @@ git clone https://github.com/hghalebi/agentic-workstation.git
 cd agentic-workstation
 ```
 
-Run the default installer:
+Run the default `coding-agent` profile:
 
 ```bash
 ./install-agentic-tools.sh
@@ -34,6 +40,27 @@ sudo ./install-agentic-tools.sh
 ```
 
 ## Options
+
+Install a named profile:
+
+```bash
+./install-agentic-tools.sh --profile minimal
+./install-agentic-tools.sh --profile factory
+./install-agentic-tools.sh --profile agent-runner
+```
+
+Resume after a failed install:
+
+```bash
+./install-agentic-tools.sh --profile factory --resume
+```
+
+Run or skip specific modules:
+
+```bash
+./install-agentic-tools.sh --only agents
+./install-agentic-tools.sh --skip browser
+```
 
 Skip Playwright browser binaries:
 
@@ -70,6 +97,28 @@ Set the workspace destination:
 ```bash
 WORKSPACE_SOURCE=/path/to/workspace WORKSPACE_TARGET="$HOME/workspace" ./install-agentic-tools.sh
 ```
+
+Hydrate a Git workspace:
+
+```bash
+WORKSPACE_REPO=git@github.com:hghalebi/project.git \
+WORKSPACE_REF=main \
+WORKSPACE_TARGET=/workspace/project \
+./install-agentic-tools.sh --profile agent-runner
+```
+
+## Profiles
+
+| Profile | Use case |
+| --- | --- |
+| `minimal` | Small reusable VM. |
+| `base-image` | Snapshot source image. |
+| `coding-agent` | Default interactive agent workstation. |
+| `human-dev` | Larger human-operated development machine. |
+| `agent-runner` | Lean autonomous agent runtime. |
+| `factory` | Full software-factory environment. |
+| `security` | Security review and supply-chain analysis. |
+| `local-llm` | Local model runtime. |
 
 ## What Gets Installed
 
@@ -117,6 +166,55 @@ SKIP_AUTO_CONFIG=1 ./install-agentic-tools.sh
 
 Planned opt-in configuration is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Health and Manifests
+
+Run health checks:
+
+```bash
+./scripts/doctor.sh --profile coding-agent
+```
+
+Check authentication status without handling secrets:
+
+```bash
+./scripts/auth-status.sh
+```
+
+Each install writes:
+
+```text
+/var/lib/agentic-workstation/manifest.json
+```
+
+The manifest records the profile, install time, host, OS, and key tool versions.
+
+## VM Factory Flow
+
+Build a base image:
+
+```bash
+./install-agentic-tools.sh --profile base-image --resume
+./scripts/prepare-snapshot.sh
+```
+
+Create a snapshot from that VM. Future VMs start from the snapshot and run only the profile layer they need:
+
+```bash
+./install-agentic-tools.sh --profile agent-runner --resume
+```
+
+For unattended provisioning, use:
+
+```text
+cloud/cloud-init.yaml
+```
+
+For local smoke testing, use:
+
+```bash
+docker build -f tests/Dockerfile.ubuntu-24.04 .
+```
+
 ## Authenticate Tools
 
 The installer does not automate auth. Run only the commands for services you use:
@@ -163,6 +261,9 @@ pre-commit run --all-files
 ## Docs
 
 - [commands.md](commands.md): install commands and source links.
+- [docs/profiles.md](docs/profiles.md): profile behavior.
+- [docs/auth.md](docs/auth.md): auth commands and status checks.
+- [docs/vm-lifecycle.md](docs/vm-lifecycle.md): snapshots, cloud-init, and workspace hydration.
 - [ROADMAP.md](ROADMAP.md): planned opt-in configuration.
 - [CONTRIBUTING.md](CONTRIBUTING.md): contribution workflow.
 - [SECURITY.md](SECURITY.md): vulnerability reporting.

@@ -1,6 +1,17 @@
 # Roadmap
 
-This project should install tools first and configure machines second. Configuration must be explicit, reversible, and safe around existing dotfiles.
+This project installs tools first and configures machines second. Configuration must be explicit, reversible, and safe around existing dotfiles.
+
+## Current Factory Features
+
+- Profile installs through `profiles/*.env`.
+- Module selection with `--only` and `--skip`.
+- Resume markers under `/var/lib/agentic-workstation/installed`.
+- Install manifest at `/var/lib/agentic-workstation/manifest.json`.
+- Workspace hydration with `WORKSPACE_REPO`.
+- Cloud-init example for first boot.
+- Snapshot cleanup script.
+- Docker smoke test.
 
 ## Current Auto-Configuration
 
