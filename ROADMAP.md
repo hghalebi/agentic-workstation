@@ -26,6 +26,16 @@ This project installs tools first and configures machines second. Configuration 
 - Add Packer image verification jobs.
 - Publish first tagged release.
 
+## Hetzner DX Work
+
+- Add `.env.hcloud` defaults and ignored local state output.
+- Add `just hcloud-doctor`, `hcloud-render`, `hcloud-create`, and `hcloud-list`.
+- Add `just agent-new`, `agent-ssh`, `agent-health`, `agent-pull`, and `agent-destroy`.
+- Label every Hetzner server and snapshot created by the repo.
+- Store rendered cloud-init, server metadata, manifests, and pulled logs under ignored local state.
+- Add per-agent Unix users and a systemd slice before adding heavier container runtimes.
+- Add optional Incus support for multi-agent sessions on one larger Hetzner VM.
+
 ## Current Auto-Configuration
 
 Enabled by default:

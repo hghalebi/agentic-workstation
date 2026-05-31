@@ -34,10 +34,31 @@ The Bash installer still works as the main entrypoint. Profiles, helper scripts,
 - Ubuntu Linux on `amd64`.
 - A root shell or a user with `sudo`.
 - Network access to apt, npm, PyPI/uv, Go modules, Cargo, and vendor release endpoints.
+- For first bootstrap, either `git` or `curl`/`wget` plus `tar`.
 
 Other Linux distributions may work, but Ubuntu is the supported target.
 
 ## Install
+
+On a fresh machine without Git installed yet, bootstrap from a GitHub archive:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/hghalebi/agentic-workstation/main/scripts/bootstrap.sh | bash
+```
+
+Choose a profile without cloning first:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/hghalebi/agentic-workstation/main/scripts/bootstrap.sh \
+  | bash -s -- --profile minimal
+```
+
+Keep a local copy of the repo scripts without Git:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/hghalebi/agentic-workstation/main/scripts/bootstrap.sh \
+  | bash -s -- --dir "$HOME/agentic-workstation"
+```
 
 Clone the repository:
 
@@ -258,6 +279,13 @@ For unattended provisioning, use:
   > cloud-init.agent-runner.yaml
 ```
 
+Create a Hetzner VM, generate/register SSH keys, render cloud-init, and start
+the profile install automatically:
+
+```bash
+HCLOUD_TOKEN=... ./scripts/agent-vm-new.sh --name repo-fix --profile agent-runner
+```
+
 For local smoke testing, use:
 
 ```bash
@@ -315,6 +343,7 @@ pre-commit run --all-files
 - [docs/profiles.md](docs/profiles.md): profile behavior.
 - [docs/auth.md](docs/auth.md): auth commands and status checks.
 - [docs/vm-lifecycle.md](docs/vm-lifecycle.md): snapshots, cloud-init, and workspace hydration.
+- [docs/hetzner-dx.md](docs/hetzner-dx.md): Hetzner-focused operator DX design.
 - [docs/architecture.md](docs/architecture.md): factory architecture.
 - [docs/use-cases.md](docs/use-cases.md): common use cases.
 - [docs/threat-model.md](docs/threat-model.md): security model.
