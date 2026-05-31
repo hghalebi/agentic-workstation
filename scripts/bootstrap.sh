@@ -51,6 +51,7 @@ ARCHIVE_URL="${AGENTIC_WORKSTATION_ARCHIVE_URL:-}"
 TARGET_DIR="${AGENTIC_WORKSTATION_DIR:-}"
 REUSE_EXISTING="${AGENTIC_BOOTSTRAP_REUSE_EXISTING:-0}"
 INSTALLER_ARGS=()
+INSTALLER_ARGC=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -109,14 +110,17 @@ while [[ $# -gt 0 ]]; do
       ;;
     --resume)
       INSTALLER_ARGS+=("--resume")
+      INSTALLER_ARGC=$((INSTALLER_ARGC + 1))
       shift
       ;;
     --no-doctor)
       INSTALLER_ARGS+=("--no-doctor")
+      INSTALLER_ARGC=$((INSTALLER_ARGC + 1))
       shift
       ;;
     --)
       shift
+      INSTALLER_ARGC=$((INSTALLER_ARGC + $#))
       INSTALLER_ARGS+=("$@")
       break
       ;;
@@ -242,4 +246,8 @@ fi
 
 log "Running installer profile: $PROFILE"
 cd "$TARGET_DIR"
-exec ./install-agentic-tools.sh --profile "$PROFILE" "${INSTALLER_ARGS[@]}"
+if [[ "$INSTALLER_ARGC" -gt 0 ]]; then
+  exec ./install-agentic-tools.sh --profile "$PROFILE" "${INSTALLER_ARGS[@]}"
+else
+  exec ./install-agentic-tools.sh --profile "$PROFILE"
+fi

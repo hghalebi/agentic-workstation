@@ -20,6 +20,36 @@ setup() {
   [ "$status" -eq 0 ]
 }
 
+@test "bootstrap runs existing checkout without optional installer args" {
+  checkout="${BATS_TEST_TMPDIR}/bootstrap-checkout"
+  arg_log="${BATS_TEST_TMPDIR}/bootstrap-args"
+  mkdir -p "$checkout"
+  cat >"${checkout}/install-agentic-tools.sh" <<'SCRIPT'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$@" >"${BOOTSTRAP_ARG_LOG:?}"
+SCRIPT
+  chmod +x "${checkout}/install-agentic-tools.sh"
+
+  run env BOOTSTRAP_ARG_LOG="$arg_log" ./scripts/bootstrap.sh --dir "$checkout" --reuse-existing --profile minimal
+  [ "$status" -eq 0 ]
+  run cat "$arg_log"
+  [ "$output" = $'--profile\nminimal' ]
+}
+
+@test "bootstrap gates optional installer args before array expansion" {
+  run bash -c '
+    awk '\''
+      /if \[\[ "\$INSTALLER_ARGC" -gt 0 \]\]; then/ { guarded = 1; next }
+      guarded && /exec \.\/install-agentic-tools\.sh .*INSTALLER_ARGS\[@\]/ { found = 1; next }
+      guarded && /^fi$/ { guarded = 0 }
+      /exec \.\/install-agentic-tools\.sh .*INSTALLER_ARGS\[@\]/ { unguarded = 1 }
+      END { exit !(found && !unguarded) }
+    '\'' scripts/bootstrap.sh
+  '
+  [ "$status" -eq 0 ]
+}
+
 @test "agent vm help works without network" {
   run ./scripts/agent-vm-new.sh --help
   [ "$status" -eq 0 ]
