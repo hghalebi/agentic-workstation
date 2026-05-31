@@ -7,6 +7,14 @@ Use layers instead of reinstalling every tool on every VM.
 Create a clean Ubuntu VM:
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/hghalebi/agentic-workstation/main/scripts/bootstrap.sh \
+  | bash -s -- --dir /opt/agentic-workstation --profile base-image --resume
+/opt/agentic-workstation/scripts/prepare-snapshot.sh
+```
+
+Or, when Git is already installed:
+
+```bash
 git clone https://github.com/hghalebi/agentic-workstation.git
 cd agentic-workstation
 ./install-agentic-tools.sh --profile base-image --resume

@@ -10,6 +10,7 @@
 tmp/
 temp/
 .cache/
+state/
 
 # Local env/secrets
 .env
@@ -27,3 +28,4 @@ target/
 node_modules/
 __pycache__/
 *.pyc
+artifacts/hcloud/

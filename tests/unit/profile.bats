@@ -15,6 +15,25 @@ setup() {
   [ "$status" -ne 0 ]
 }
 
+@test "bootstrap help works without network" {
+  run ./scripts/bootstrap.sh --help
+  [ "$status" -eq 0 ]
+}
+
+@test "agent vm help works without network" {
+  run ./scripts/agent-vm-new.sh --help
+  [ "$status" -eq 0 ]
+}
+
+@test "cloud-init renderer can inject workspace hydration" {
+  run bash -c './scripts/render-cloud-init.sh --ssh-key-value "ssh-ed25519 AAAATEST test@example" --ref v0.1.0 --workspace-repo git@github.com:org/project.git --workspace-ref main --workspace-target /workspace/project | grep -Eq "export WORKSPACE_REPO=.*git@github.com:org/project.git"'
+  [ "$status" -eq 0 ]
+  run bash -c './scripts/render-cloud-init.sh --ssh-key-value "ssh-ed25519 AAAATEST test@example" --ref v0.1.0 --workspace-repo git@github.com:org/project.git --workspace-ref main --workspace-target /workspace/project | grep -Eq "export WORKSPACE_REF=.*main"'
+  [ "$status" -eq 0 ]
+  run bash -c './scripts/render-cloud-init.sh --ssh-key-value "ssh-ed25519 AAAATEST test@example" --ref v0.1.0 --workspace-repo git@github.com:org/project.git --workspace-ref main --workspace-target /workspace/project | grep -Eq "export WORKSPACE_TARGET=.*/workspace/project"'
+  [ "$status" -eq 0 ]
+}
+
 @test "only filter enables requested module and filters others" {
   run bash -c './install-agentic-tools.sh --profile coding-agent --only agents --json-plan | jq -e ".modules[] | select(.name == \"agents\" and .enabled == true)"'
   [ "$status" -eq 0 ]

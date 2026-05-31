@@ -5,6 +5,8 @@ The root [commands.md](../commands.md) file is the install command reference. Th
 ## Install
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/hghalebi/agentic-workstation/main/scripts/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/hghalebi/agentic-workstation/main/scripts/bootstrap.sh | bash -s -- --profile minimal
 ./install-agentic-tools.sh
 ./install-agentic-tools.sh --profile minimal
 ./install-agentic-tools.sh --profile factory --resume
@@ -48,6 +50,14 @@ WORKSPACE_TARGET=/workspace/project \
   --profile agent-runner \
   --ref v0.1.0 \
   > cloud-init.agent-runner.yaml
+```
+
+## Hetzner Agent VM
+
+```bash
+HCLOUD_TOKEN=... ./scripts/agent-vm-new.sh --name repo-fix --profile agent-runner
+HCLOUD_TOKEN=... ./scripts/agent-vm-new.sh --name repo-fix --workspace-repo git@github.com:org/project.git
+just agent-new repo-fix
 ```
 
 ## Local Validation

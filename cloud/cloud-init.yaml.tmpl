@@ -20,6 +20,7 @@ write_files:
       export DEBIAN_FRONTEND=noninteractive
       export AGENTIC_PROFILE="__PROFILE__"
       export SKIP_BROWSER_TOOLS="${SKIP_BROWSER_TOOLS:-1}"
+__WORKSPACE_EXPORTS__
 
       apt-get update -y
       apt-get install -y git curl ca-certificates

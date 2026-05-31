@@ -11,6 +11,9 @@ PROFILE="agent-runner"
 REPO_URL="https://github.com/hghalebi/agentic-workstation.git"
 REF="main"
 TEMPLATE="${REPO_DIR}/cloud/cloud-init.yaml.tmpl"
+WORKSPACE_REPO=""
+WORKSPACE_REF="main"
+WORKSPACE_TARGET=""
 
 usage() {
   cat <<'USAGE'
@@ -24,6 +27,12 @@ Options:
   --profile NAME    Installer profile. Default: agent-runner
   --repo URL        Agentic Workstation Git URL.
   --ref REF         Git ref to checkout. Prefer a tag or commit for images.
+  --workspace-repo URL
+                    Workspace Git repo to hydrate during install.
+  --workspace-ref REF
+                    Workspace ref. Default: main
+  --workspace-target PATH
+                    Workspace target path.
 USAGE
 }
 
@@ -53,6 +62,30 @@ while [[ $# -gt 0 ]]; do
       REF="$2"
       shift 2
       ;;
+    --workspace-repo)
+      [[ $# -ge 2 ]] || {
+        echo "--workspace-repo requires a value" >&2
+        exit 1
+      }
+      WORKSPACE_REPO="$2"
+      shift 2
+      ;;
+    --workspace-ref)
+      [[ $# -ge 2 ]] || {
+        echo "--workspace-ref requires a value" >&2
+        exit 1
+      }
+      WORKSPACE_REF="$2"
+      shift 2
+      ;;
+    --workspace-target)
+      [[ $# -ge 2 ]] || {
+        echo "--workspace-target requires a value" >&2
+        exit 1
+      }
+      WORKSPACE_TARGET="$2"
+      shift 2
+      ;;
     -h | --help)
       usage
       exit 0
@@ -77,10 +110,43 @@ if [[ "$REF" == "main" ]]; then
   echo "warning: --ref main is not reproducible; prefer a tag or commit" >&2
 fi
 
+shell_quote() {
+  local value="$1"
+
+  printf "'"
+  while [[ "$value" == *"'"* ]]; do
+    printf "%s%s" "${value%%\'*}" "'\\''"
+    value="${value#*\'}"
+  done
+  printf "%s'" "$value"
+}
+
+workspace_exports() {
+  if [[ -z "$WORKSPACE_REPO" ]]; then
+    printf ''
+    return 0
+  fi
+
+  printf '      export WORKSPACE_REPO=%s\n' "$(shell_quote "$WORKSPACE_REPO")"
+  printf '      export WORKSPACE_REF=%s\n' "$(shell_quote "$WORKSPACE_REF")"
+  if [[ -n "$WORKSPACE_TARGET" ]]; then
+    printf '      export WORKSPACE_TARGET=%s\n' "$(shell_quote "$WORKSPACE_TARGET")"
+  fi
+}
+
+WORKSPACE_EXPORTS="$(workspace_exports)"
+
 sed \
   -e "s|__USER__|${USER_NAME}|g" \
   -e "s|__SSH_KEY__|${SSH_KEY_VALUE}|g" \
   -e "s|__PROFILE__|${PROFILE}|g" \
   -e "s|__REPO__|${REPO_URL}|g" \
   -e "s|__REF__|${REF}|g" \
-  "$TEMPLATE"
+  "$TEMPLATE" |
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" == "__WORKSPACE_EXPORTS__" ]]; then
+      printf '%s' "$WORKSPACE_EXPORTS"
+    else
+      printf '%s\n' "$line"
+    fi
+  done

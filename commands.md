@@ -7,6 +7,8 @@ Use it to audit what the installer runs, update vendor sources, or install a sub
 ## Installer Interface
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/hghalebi/agentic-workstation/main/scripts/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/hghalebi/agentic-workstation/main/scripts/bootstrap.sh | bash -s -- --profile minimal
 ./install-agentic-tools.sh --profile coding-agent
 ./install-agentic-tools.sh --profile factory --resume
 ./install-agentic-tools.sh --only agents

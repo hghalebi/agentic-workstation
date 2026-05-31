@@ -42,3 +42,6 @@ test-docker:
 
 snapshot-clean:
     ./scripts/prepare-snapshot.sh
+
+agent-new name profile="agent-runner" ref="main":
+    ./scripts/agent-vm-new.sh --name {{name}} --profile {{profile}} --ref {{ref}}
