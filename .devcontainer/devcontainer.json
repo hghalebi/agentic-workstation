@@ -1,0 +1,16 @@
+{
+  "name": "Agentic Workstation",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "workspaceFolder": "/workspace",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "timonwong.shellcheck",
+        "redhat.vscode-yaml"
+      ]
+    }
+  },
+  "postCreateCommand": "pre-commit install || true"
+}

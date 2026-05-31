@@ -1,0 +1,19 @@
+name: Profile request
+description: Request a new workstation profile.
+title: "profile: "
+labels: ["profile-request"]
+body:
+  - type: input
+    id: use_case
+    attributes:
+      label: Use case
+    validations:
+      required: true
+  - type: textarea
+    id: tools
+    attributes:
+      label: Required tools
+  - type: textarea
+    id: exclusions
+    attributes:
+      label: Tools or mutations to avoid

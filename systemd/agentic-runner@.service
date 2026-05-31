@@ -1,0 +1,16 @@
+[Unit]
+Description=Agentic Workstation Runner: %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/workspace/%i
+EnvironmentFile=-/etc/agentic-workstation/runner.env
+ExecStart=/usr/local/bin/agentic-runner-start %i
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

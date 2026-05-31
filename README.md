@@ -1,5 +1,10 @@
 # Agentic Workstation
 
+[![CI](https://github.com/hghalebi/agentic-workstation/actions/workflows/ci.yml/badge.svg)](https://github.com/hghalebi/agentic-workstation/actions/workflows/ci.yml)
+[![Security](https://github.com/hghalebi/agentic-workstation/actions/workflows/security.yml/badge.svg)](https://github.com/hghalebi/agentic-workstation/actions/workflows/security.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Ubuntu](https://img.shields.io/badge/ubuntu-22.04%20%7C%2024.04-orange.svg)](tests)
+
 Build repeatable Ubuntu workstations for agentic software development.
 
 The repo is a layered workstation factory:
@@ -9,6 +14,20 @@ base image -> cloud-init -> profile install -> workspace hydration -> health che
 ```
 
 The Bash installer still works as the main entrypoint. Profiles, helper scripts, cloud-init, manifests, and snapshot cleanup make it usable across many VMs.
+
+## Who This Is For
+
+- Solo technical founders who want a fresh AI coding VM in minutes.
+- Teams that need reproducible agent-runner machines.
+- Security reviewers who need disposable supply-chain-analysis boxes.
+- Platform engineers building golden images for AI-native development.
+
+## What This Is Not
+
+- Not a dotfiles manager.
+- Not a secrets manager.
+- Not a Kubernetes or Docker mega-bootstrapper by default.
+- Not a replacement for devcontainers, Nix, or Packer. It can complement them.
 
 ## Requirements
 
@@ -60,6 +79,13 @@ Run or skip specific modules:
 ```bash
 ./install-agentic-tools.sh --only agents
 ./install-agentic-tools.sh --skip browser
+```
+
+Inspect before mutating the machine:
+
+```bash
+./install-agentic-tools.sh --profile coding-agent --dry-run
+./install-agentic-tools.sh --profile coding-agent --json-plan
 ```
 
 Skip Playwright browser binaries:
@@ -120,6 +146,17 @@ WORKSPACE_TARGET=/workspace/project \
 | `security` | Security review and supply-chain analysis. |
 | `local-llm` | Local model runtime. |
 
+Decision tree:
+
+| Need | Use |
+| --- | --- |
+| Normal AI development machine | `coding-agent` |
+| Fast future VM boots | `base-image`, then snapshot |
+| Autonomous agent machines | `agent-runner` |
+| Security analysis | `security` |
+| Every artifact and factory helper | `factory` |
+| Ollama or local models | `local-llm` |
+
 ## What Gets Installed
 
 Default layer:
@@ -172,6 +209,7 @@ Run health checks:
 
 ```bash
 ./scripts/doctor.sh --profile coding-agent
+./scripts/doctor.sh --profile coding-agent --json
 ```
 
 Check authentication status without handling secrets:
@@ -187,6 +225,12 @@ Each install writes:
 ```
 
 The manifest records the profile, install time, host, OS, and key tool versions.
+
+Compare manifests:
+
+```bash
+./scripts/diff-manifest.sh expected.json /var/lib/agentic-workstation/manifest.json
+```
 
 ## VM Factory Flow
 
@@ -205,8 +249,13 @@ Create a snapshot from that VM. Future VMs start from the snapshot and run only 
 
 For unattended provisioning, use:
 
-```text
-cloud/cloud-init.yaml
+```bash
+./scripts/render-cloud-init.sh \
+  --user ubuntu \
+  --ssh-key ~/.ssh/id_ed25519.pub \
+  --profile agent-runner \
+  --ref v0.1.0 \
+  > cloud-init.agent-runner.yaml
 ```
 
 For local smoke testing, use:
@@ -246,6 +295,8 @@ hf auth login
 - Secrets are not collected, written, or printed.
 - Docker, Kubernetes, Terraform/OpenTofu, AWS CLI, and Azure CLI are documented but not installed by default.
 - Some tools use official remote install scripts. See [commands.md](commands.md) for the exact commands and source links.
+- Remote installers are audited in [docs/remote-installers.md](docs/remote-installers.md).
+- Tool pinning policy starts in [agentic-tools.lock.yaml](agentic-tools.lock.yaml).
 
 ## Validate Changes
 
@@ -264,6 +315,13 @@ pre-commit run --all-files
 - [docs/profiles.md](docs/profiles.md): profile behavior.
 - [docs/auth.md](docs/auth.md): auth commands and status checks.
 - [docs/vm-lifecycle.md](docs/vm-lifecycle.md): snapshots, cloud-init, and workspace hydration.
+- [docs/architecture.md](docs/architecture.md): factory architecture.
+- [docs/use-cases.md](docs/use-cases.md): common use cases.
+- [docs/threat-model.md](docs/threat-model.md): security model.
+- [docs/remote-installers.md](docs/remote-installers.md): remote installer audit policy.
+- [docs/status.md](docs/status.md): project health targets.
+- [docs/agent-runner.md](docs/agent-runner.md): optional headless runner service.
+- [docs/release.md](docs/release.md): release checklist.
 - [ROADMAP.md](ROADMAP.md): planned opt-in configuration.
 - [CONTRIBUTING.md](CONTRIBUTING.md): contribution workflow.
 - [SECURITY.md](SECURITY.md): vulnerability reporting.

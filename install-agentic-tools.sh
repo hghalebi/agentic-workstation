@@ -9,6 +9,9 @@ Agentic Workstation installer
 
 Usage:
   ./install-agentic-tools.sh [--profile PROFILE] [--resume] [--only MODULES] [--skip MODULES]
+  ./install-agentic-tools.sh [--profile PROFILE] --dry-run
+  ./install-agentic-tools.sh [--profile PROFILE] --plan
+  ./install-agentic-tools.sh [--profile PROFILE] --json-plan
 
 Environment options:
   SKIP_BROWSER_TOOLS=1              Skip Playwright browser binary install.
@@ -28,6 +31,8 @@ Examples:
   ./install-agentic-tools.sh --profile minimal
   ./install-agentic-tools.sh --profile factory --resume
   ./install-agentic-tools.sh --only base,runtimes,agents
+  ./install-agentic-tools.sh --profile coding-agent --dry-run
+  ./install-agentic-tools.sh --profile coding-agent --json-plan
   SKIP_BROWSER_TOOLS=1 ./install-agentic-tools.sh --profile coding-agent
 USAGE
 }
@@ -46,11 +51,30 @@ ONLY_MODULES=""
 SKIP_MODULES=""
 RESUME=0
 RUN_DOCTOR=1
+PLAN_ONLY=0
+JSON_PLAN=0
+DRY_RUN=0
 STATE_DIR="${STATE_DIR:-/var/lib/agentic-workstation}"
 MANIFEST_PATH="${MANIFEST_PATH:-${STATE_DIR}/manifest.json}"
+MODULE_ORDER=(
+  base
+  runtimes
+  version-managers
+  git-helpers
+  agents
+  browser
+  cloud
+  terminal
+  factory
+  onepassword
+  harness
+  workspace
+  config
+  manifest
+)
 
 log() {
-  printf '\n==> %s\n' "$*"
+  printf '\n==> %s\n' "$*" >&2
 }
 
 have() {
@@ -100,6 +124,19 @@ parse_args() {
         RESUME=1
         shift
         ;;
+      --dry-run)
+        DRY_RUN=1
+        PLAN_ONLY=1
+        shift
+        ;;
+      --plan)
+        PLAN_ONLY=1
+        shift
+        ;;
+      --json-plan)
+        JSON_PLAN=1
+        shift
+        ;;
       --no-doctor)
         RUN_DOCTOR=0
         shift
@@ -133,6 +170,162 @@ load_profile() {
   if [[ "${SKIP_AUTO_CONFIG:-0}" == "1" ]]; then
     AUTO_CONFIG=0
   fi
+}
+
+module_description() {
+  case "$1" in
+    base) printf 'Core Ubuntu CLI and debugging tools' ;;
+    runtimes) printf 'Rust and uv runtime tooling' ;;
+    version-managers) printf 'mise and aqua tool version managers' ;;
+    git-helpers) printf 'YAML and Git diff helpers' ;;
+    agents) printf 'Agent and model CLIs' ;;
+    browser) printf 'Playwright browser binaries' ;;
+    cloud) printf 'Cloud and database CLIs' ;;
+    terminal) printf 'Terminal workspace tools' ;;
+    factory) printf 'Factory, security, artifact, tracing, and model helper tools' ;;
+    onepassword) printf '1Password CLI' ;;
+    harness) printf 'Harness CLI' ;;
+    workspace) printf 'Workspace copy and Git hydration' ;;
+    config) printf 'Shell, Git, and hook auto-configuration' ;;
+    manifest) printf 'Install manifest generation' ;;
+    *) printf 'Unknown module' ;;
+  esac
+}
+
+module_requires_sudo() {
+  case "$1" in
+    base | version-managers | git-helpers | agents | browser | cloud | terminal | factory | onepassword | harness | workspace | config | manifest) return 0 ;;
+    runtimes) return 1 ;;
+    *) return 1 ;;
+  esac
+}
+
+module_profile_enabled() {
+  case "$1" in
+    base) [[ "${INSTALL_BASE:-0}" == "1" ]] ;;
+    runtimes) [[ "${INSTALL_RUNTIMES:-0}" == "1" ]] ;;
+    version-managers) [[ "${INSTALL_VERSION_MANAGERS:-0}" == "1" ]] ;;
+    git-helpers) [[ "${INSTALL_GIT_HELPERS:-0}" == "1" ]] ;;
+    agents) [[ "${INSTALL_AGENT_CLIS:-0}" == "1" ]] ;;
+    browser) [[ "${INSTALL_BROWSER_TOOLS:-0}" == "1" ]] ;;
+    cloud) [[ "${INSTALL_CLOUD_CLIS:-0}" == "1" ]] ;;
+    terminal) [[ "${INSTALL_TERMINAL_TOOLS:-0}" == "1" ]] ;;
+    factory) [[ "${INSTALL_FACTORY_TOOLS:-0}" == "1" || "${INSTALL_SECURITY_TOOLS:-0}" == "1" || "${INSTALL_LOCAL_MODEL_RUNTIME:-0}" == "1" ]] ;;
+    onepassword) [[ "${INSTALL_ONEPASSWORD:-0}" == "1" ]] ;;
+    harness) [[ "${INSTALL_HARNESS:-0}" == "1" ]] ;;
+    workspace) [[ -n "${WORKSPACE_SOURCE:-}" || -n "${WORKSPACE_REPO:-}" ]] ;;
+    config) [[ "${AUTO_CONFIG:-1}" == "1" ]] ;;
+    manifest) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+module_plan_enabled() {
+  local module="$1"
+  module_profile_enabled "$module" || return 1
+  should_run_module "$module" || return 1
+  if [[ "$RESUME" == "1" ]] && is_done "$module"; then
+    return 1
+  fi
+  return 0
+}
+
+module_plan_reason() {
+  local module="$1"
+  if ! module_profile_enabled "$module"; then
+    printf 'profile-disabled'
+  elif [[ -n "$ONLY_MODULES" ]] && ! csv_contains "$ONLY_MODULES" "$module"; then
+    printf 'only-filter'
+  elif [[ -n "$SKIP_MODULES" ]] && csv_contains "$SKIP_MODULES" "$module"; then
+    printf 'skip-filter'
+  elif [[ "$RESUME" == "1" ]] && is_done "$module"; then
+    printf 'resume-marker'
+  else
+    printf 'profile'
+  fi
+}
+
+json_string() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  value="${value//$'\n'/\\n}"
+  printf '"%s"' "$value"
+}
+
+json_bool() {
+  if "$@"; then
+    printf 'true'
+  else
+    printf 'false'
+  fi
+}
+
+json_bool_value() {
+  if [[ "${1:-0}" == "1" || "${1:-false}" == "true" ]]; then
+    printf 'true'
+  else
+    printf 'false'
+  fi
+}
+
+write_json_plan() {
+  printf '{\n'
+  printf '  "profile": '
+  json_string "$PROFILE"
+  printf ',\n'
+  printf '  "dry_run": %s,\n' "$(json_bool_value "$DRY_RUN")"
+  printf '  "mutates_dotfiles": %s,\n' "$(json_bool_value "${AUTO_CONFIG:-1}")"
+  printf '  "requires_sudo": true,\n'
+  printf '  "modules": [\n'
+  local first=1
+  local module
+  for module in "${MODULE_ORDER[@]}"; do
+    if [[ "$first" == "1" ]]; then
+      first=0
+    else
+      printf ',\n'
+    fi
+    printf '    {"name": '
+    json_string "$module"
+    printf ', "description": '
+    json_string "$(module_description "$module")"
+    printf ', "enabled": %s' "$(json_bool module_plan_enabled "$module")"
+    printf ', "reason": '
+    json_string "$(module_plan_reason "$module")"
+    printf ', "requires_sudo": %s}' "$(json_bool module_requires_sudo "$module")"
+  done
+  printf '\n  ],\n'
+  printf '  "remote_installers": [\n'
+  printf '    "https://sh.rustup.rs",\n'
+  printf '    "https://astral.sh/uv/install.sh",\n'
+  printf '    "https://mise.run",\n'
+  printf '    "https://raw.githubusercontent.com/aquaproj/aqua-installer",\n'
+  printf '    "https://get.anchore.io/syft",\n'
+  printf '    "https://get.anchore.io/grype",\n'
+  printf '    "https://hf.co/cli/install.sh",\n'
+  printf '    "https://ollama.com/install.sh",\n'
+  printf '    "https://raw.githubusercontent.com/harness/harness-cli",\n'
+  printf '    "https://app-updates.agilebits.com",\n'
+  printf '    "https://cache.agilebits.com"\n'
+  printf '  ]\n'
+  printf '}\n'
+}
+
+write_human_plan() {
+  printf 'Agentic Workstation install plan\n'
+  printf 'profile: %s\n' "$PROFILE"
+  printf 'dry_run: %s\n' "$DRY_RUN"
+  printf 'mutates_dotfiles: %s\n' "$(if [[ "${AUTO_CONFIG:-1}" == "1" ]]; then printf yes; else printf no; fi)"
+  printf 'requires_sudo: yes\n\n'
+  printf 'Modules:\n'
+  local module
+  for module in "${MODULE_ORDER[@]}"; do
+    local enabled="no"
+    module_plan_enabled "$module" && enabled="yes"
+    printf '  %-17s enabled=%-3s reason=%-16s %s\n' "$module" "$enabled" "$(module_plan_reason "$module")" "$(module_description "$module")"
+  done
+  printf '\nRemote installers are listed in --json-plan and docs/remote-installers.md.\n'
 }
 
 csv_contains() {
@@ -693,6 +886,11 @@ write_manifest() {
     os_id="${ID:-unknown}-${VERSION_ID:-unknown}"
   fi
 
+  local lockfile_hash=""
+  if [[ -f "${SCRIPT_DIR}/agentic-tools.lock.yaml" ]]; then
+    lockfile_hash="$(sha256sum "${SCRIPT_DIR}/agentic-tools.lock.yaml" | awk '{print $1}')"
+  fi
+
   local tmpfile
   tmpfile="$(mktemp)"
   jq -n \
@@ -700,6 +898,7 @@ write_manifest() {
     --arg installed_at "$(date -Is)" \
     --arg hostname "$(hostname)" \
     --arg os "$os_id" \
+    --arg lockfile_hash "$lockfile_hash" \
     --arg git "$(tool_version git git --version)" \
     --arg node "$(tool_version node node --version)" \
     --arg npm "$(tool_version npm npm --version)" \
@@ -717,6 +916,7 @@ write_manifest() {
       installed_at: $installed_at,
       hostname: $hostname,
       os: $os,
+      lockfile_hash: $lockfile_hash,
       tools: {
         git: $git,
         node: $node,
@@ -749,6 +949,15 @@ run_doctor() {
 main() {
   parse_args "$@"
   load_profile
+
+  if [[ "$JSON_PLAN" == "1" ]]; then
+    write_json_plan
+    exit 0
+  fi
+  if [[ "$PLAN_ONLY" == "1" ]]; then
+    write_human_plan
+    exit 0
+  fi
 
   [[ "${INSTALL_BASE:-0}" == "1" ]] && run_module base apt_install_base
   [[ "${INSTALL_RUNTIMES:-0}" == "1" ]] && run_module runtimes install_runtimes

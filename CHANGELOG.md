@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added installer `--dry-run`, `--plan`, and `--json-plan`.
+- Added `modules.yaml`, `agentic-tools.lock.yaml`, lockfile verification, and remote installer audit tooling.
+- Added JSON output for `scripts/doctor.sh` and expanded auth readiness reporting.
+- Added cloud-init rendering, agent-runner service scaffolding, devcontainer support, issue templates, security workflow, Bats tests, and Docker 22.04 smoke test.
+- Added architecture, use-case, threat-model, remote-installer, status, and agent-runner docs.
 - Added profile-based installation with `--profile`, `--only`, `--skip`, and `--resume`.
 - Added install markers and `/var/lib/agentic-workstation/manifest.json`.
 - Added workspace Git hydration through `WORKSPACE_REPO`, `WORKSPACE_REF`, and `WORKSPACE_TARGET`.

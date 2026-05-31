@@ -16,13 +16,26 @@ install-local-llm:
 doctor:
     ./scripts/doctor.sh
 
+doctor-json:
+    ./scripts/doctor.sh --json
+
 auth:
     ./scripts/auth-status.sh
 
+plan profile="coding-agent":
+    ./install-agentic-tools.sh --profile {{profile}} --plan
+
+json-plan profile="coding-agent":
+    ./install-agentic-tools.sh --profile {{profile}} --json-plan
+
 lint:
-    bash -n install-agentic-tools.sh
-    shellcheck install-agentic-tools.sh scripts/*.sh
-    shfmt -i 2 -ci -d install-agentic-tools.sh scripts/*.sh
+    bash -n install-agentic-tools.sh scripts/*.sh cloud/*.sh
+    shellcheck install-agentic-tools.sh scripts/*.sh cloud/*.sh
+    shfmt -i 2 -ci -d install-agentic-tools.sh scripts/*.sh cloud/*.sh
+
+audit:
+    ./scripts/verify-lockfile.sh
+    ./scripts/audit-remote-installers.sh
 
 test-docker:
     docker build -f tests/Dockerfile.ubuntu-24.04 .

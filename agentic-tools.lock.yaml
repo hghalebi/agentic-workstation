@@ -1,0 +1,79 @@
+schema: 1
+policy:
+  default_allows_latest: false
+  allow_moving_targets_with: ALLOW_LATEST=1
+
+npm:
+  "@openai/codex": "0.18.0"
+  "@anthropic-ai/claude-code": "1.0.0"
+  "@google/gemini-cli": "0.1.12"
+  "@github/copilot": "0.0.328"
+  "@google/clasp": "3.0.6"
+  "@googleworkspace/cli": "1.5.0"
+  "@modelcontextprotocol/inspector": "0.16.8"
+  "@go-task/cli": "3.44.1"
+  neonctl: "2.13.0"
+  playwright: "1.52.0"
+  opencode-ai: "0.5.16"
+  openclaw: "0.4.4"
+  codeagents: "0.3.4"
+  snyk: "1.1296.2"
+
+uv:
+  aider-chat: "0.84.0"
+  llm: "0.26"
+  openhands: "0.39.0"
+  semgrep: "1.122.0"
+  dvc: "3.59.1"
+  deepagents-cli: "0.0.8"
+
+pip:
+  codeagents: "0.3.4"
+
+go:
+  github.com/hetznercloud/cli/cmd/hcloud: "v1.50.0"
+  github.com/mikefarah/yq/v4: "v4.45.4"
+  github.com/zricethezav/gitleaks/v8: "v8.24.3"
+  github.com/sigstore/cosign/v3/cmd/cosign: "v3.0.0"
+
+cargo:
+  git-delta: "0.18.2"
+  zellij: "0.42.2"
+  just: "1.40.0"
+
+remote_installers:
+  rustup:
+    url: https://sh.rustup.rs
+    verification: official TLS endpoint; no stable checksum for generated shell installer
+    exception: documented
+  uv:
+    url: https://astral.sh/uv/install.sh
+    verification: official TLS endpoint; no stable checksum for generated shell installer
+    exception: documented
+  mise:
+    url: https://mise.run
+    verification: official TLS endpoint; no stable checksum for generated shell installer
+    exception: documented
+  aqua-installer:
+    url: https://raw.githubusercontent.com/aquaproj/aqua-installer/v4.0.2/aqua-installer
+    sha256: 98b883756cdd0a6807a8c7623404bfc3bc169275ad9064dc23a6e24ad398f43d
+  syft:
+    url: https://get.anchore.io/syft
+    verification: official TLS endpoint; binary install script
+    exception: documented
+  grype:
+    url: https://get.anchore.io/grype
+    verification: official TLS endpoint; binary install script
+    exception: documented
+  hf:
+    url: https://hf.co/cli/install.sh
+    verification: official TLS endpoint; binary install script
+    exception: documented
+  ollama:
+    url: https://ollama.com/install.sh
+    verification: official TLS endpoint; binary install script
+    exception: documented
+  harness:
+    url: https://raw.githubusercontent.com/harness/harness-cli/v2/install
+    verification: official GitHub raw endpoint
+    exception: documented

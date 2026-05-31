@@ -1,0 +1,22 @@
+name: Bug report
+description: Report a reproducible install, profile, or VM bootstrap bug.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: input
+    id: profile
+    attributes:
+      label: Profile
+      placeholder: coding-agent
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Include the exact command and OS version.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      render: shell

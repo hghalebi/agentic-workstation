@@ -1,0 +1,15 @@
+name: Security hardening request
+description: Request supply-chain, auth, cloud-init, or host-hardening improvements.
+title: "security: "
+labels: ["security"]
+body:
+  - type: textarea
+    id: concern
+    attributes:
+      label: Concern
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed mitigation

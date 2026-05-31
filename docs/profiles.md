@@ -21,6 +21,13 @@ Run or skip a module:
 ./install-agentic-tools.sh --skip browser
 ```
 
+Inspect a plan before install:
+
+```bash
+./install-agentic-tools.sh --profile coding-agent --plan
+./install-agentic-tools.sh --profile coding-agent --json-plan | jq .
+```
+
 ## Available Profiles
 
 | Profile | Use case | Notes |
@@ -54,6 +61,8 @@ The installer currently exposes these module names:
 | `workspace` | local copy and Git workspace hydration. |
 | `config` | shell, Git, and hook configuration. |
 | `manifest` | `/var/lib/agentic-workstation/manifest.json`. |
+
+Module metadata lives in `modules.yaml`.
 
 ## Profile Compatibility Flags
 

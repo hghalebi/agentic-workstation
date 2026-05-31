@@ -1,21 +1,47 @@
 name: CI
 
-on:
+"on":
   push:
   pull_request:
 
 jobs:
-  shell:
+  static:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install check tools
-        run: sudo apt-get update && sudo apt-get install -y shellcheck shfmt pre-commit
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck shfmt pre-commit yamllint jq bats golang-go
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
       - name: Syntax check
         run: bash -n install-agentic-tools.sh scripts/*.sh cloud/*.sh
       - name: ShellCheck
         run: shellcheck install-agentic-tools.sh scripts/*.sh cloud/*.sh
       - name: shfmt
         run: shfmt -i 2 -ci -d install-agentic-tools.sh scripts/*.sh cloud/*.sh
+      - name: actionlint
+        run: /home/runner/go/bin/actionlint
+      - name: yamllint
+        run: yamllint .
       - name: pre-commit
         run: pre-commit run --all-files
+
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install unit test tools
+        run: sudo apt-get update && sudo apt-get install -y bats jq
+      - name: Bats
+        run: bats tests/unit
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ubuntu: ["22.04", "24.04"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Docker static smoke
+        run: docker build -f tests/Dockerfile.ubuntu-${{ matrix.ubuntu }} .

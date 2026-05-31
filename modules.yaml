@@ -1,0 +1,184 @@
+schema: 1
+modules:
+  base:
+    description: Core Ubuntu CLI and debugging tools
+    requires_sudo: true
+    requires_network: true
+    idempotent_marker: base
+    package_sources:
+      - apt
+    verify:
+      - git
+      - gh
+      - jq
+      - rg
+      - fd
+      - fzf
+      - tmux
+      - python3
+      - node
+      - npm
+      - go
+      - op
+
+  runtimes:
+    description: Rust and uv runtime tooling
+    requires_sudo: false
+    requires_network: true
+    idempotent_marker: runtimes
+    package_sources:
+      - rustup
+      - remote-installer
+    verify:
+      - rustc
+      - cargo
+      - uv
+      - uvx
+
+  version-managers:
+    description: mise and aqua tool version managers
+    requires_sudo: true
+    requires_network: true
+    idempotent_marker: version-managers
+    package_sources:
+      - remote-installer
+    verify:
+      - mise
+      - aqua
+
+  git-helpers:
+    description: YAML and Git diff helpers
+    requires_sudo: true
+    requires_network: true
+    idempotent_marker: git-helpers
+    package_sources:
+      - go
+      - cargo
+    verify:
+      - yq
+      - delta
+
+  agents:
+    description: Agent and model CLIs
+    requires_sudo: true
+    requires_network: true
+    idempotent_marker: agents
+    package_sources:
+      - npm
+      - uv
+      - pip
+    verify:
+      - codex
+      - claude
+      - gemini
+      - copilot
+      - opencode
+      - openclaw
+      - aider
+      - llm
+      - openhands
+
+  browser:
+    description: Playwright browser binaries
+    requires_sudo: true
+    requires_network: true
+    idempotent_marker: browser
+    package_sources:
+      - npm
+      - playwright
+    verify:
+      - npx
+
+  cloud:
+    description: Cloud and database CLIs
+    requires_sudo: true
+    requires_network: true
+    idempotent_marker: cloud
+    package_sources:
+      - go
+      - apt
+    verify:
+      - hcloud
+      - gcloud
+      - neonctl
+      - clasp
+      - gws
+
+  terminal:
+    description: Terminal workspace tools
+    requires_sudo: true
+    requires_network: true
+    idempotent_marker: terminal
+    package_sources:
+      - cargo
+    verify:
+      - zellij
+
+  factory:
+    description: Factory, security, artifact, tracing, and model helper tools
+    requires_sudo: true
+    requires_network: true
+    idempotent_marker: factory
+    package_sources:
+      - apt
+      - npm
+      - uv
+      - cargo
+      - go
+      - remote-installer
+    verify:
+      - task
+      - just
+      - pandoc
+      - semgrep
+      - gitleaks
+      - syft
+      - grype
+      - trivy
+
+  onepassword:
+    description: 1Password CLI
+    requires_sudo: true
+    requires_network: true
+    idempotent_marker: onepassword
+    package_sources:
+      - remote-download
+    verify:
+      - op
+
+  harness:
+    description: Harness CLI
+    requires_sudo: true
+    requires_network: true
+    idempotent_marker: harness
+    package_sources:
+      - remote-installer
+    verify:
+      - hc
+
+  workspace:
+    description: Workspace copy and Git hydration
+    requires_sudo: false
+    requires_network: false
+    idempotent_marker: workspace
+    package_sources: []
+    verify:
+      - git
+
+  config:
+    description: Shell, Git, and hook auto-configuration
+    requires_sudo: false
+    requires_network: false
+    idempotent_marker: config
+    package_sources: []
+    verify:
+      - git
+
+  manifest:
+    description: Install manifest generation
+    requires_sudo: true
+    requires_network: false
+    idempotent_marker: manifest
+    package_sources: []
+    verify:
+      - jq

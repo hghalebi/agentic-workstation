@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -12,8 +12,6 @@ RUN shellcheck install-agentic-tools.sh scripts/*.sh cloud/*.sh
 RUN shfmt -i 2 -ci -d install-agentic-tools.sh scripts/*.sh cloud/*.sh
 RUN bats tests/unit
 
-# Full install tests are intentionally opt-in because they download many tools.
-# docker build --build-arg RUN_INSTALL=1 -f tests/Dockerfile.ubuntu-24.04 .
 ARG RUN_INSTALL=0
 ARG PROFILE=minimal
 RUN if [ "$RUN_INSTALL" = "1" ]; then \

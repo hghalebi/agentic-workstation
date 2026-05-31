@@ -5,13 +5,26 @@ This project installs tools first and configures machines second. Configuration 
 ## Current Factory Features
 
 - Profile installs through `profiles/*.env`.
+- Dry-run and plan output through `--dry-run`, `--plan`, and `--json-plan`.
 - Module selection with `--only` and `--skip`.
+- Module metadata in `modules.yaml`.
 - Resume markers under `/var/lib/agentic-workstation/installed`.
 - Install manifest at `/var/lib/agentic-workstation/manifest.json`.
 - Workspace hydration with `WORKSPACE_REPO`.
-- Cloud-init example for first boot.
+- Cloud-init rendering for first boot.
 - Snapshot cleanup script.
 - Docker smoke test.
+- Lockfile skeleton and remote installer audit.
+- JSON doctor output and expanded auth status.
+- Devcontainer, Bats tests, and security workflow.
+
+## Next Reliability Work
+
+- Enforce `agentic-tools.lock.yaml` in install commands instead of using it only for audit.
+- Publish expected manifests for each profile.
+- Add release SBOM and checksum bundle.
+- Add Packer image verification jobs.
+- Publish first tagged release.
 
 ## Current Auto-Configuration
 

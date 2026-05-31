@@ -4,11 +4,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 PROFILE="coding-agent"
+JSON=0
+RESULTS=()
 
 usage() {
   cat <<'USAGE'
 Usage:
-  scripts/doctor.sh [--profile PROFILE]
+  scripts/doctor.sh [--profile PROFILE] [--json]
 USAGE
 }
 
@@ -20,6 +22,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --profile=*)
       PROFILE="${1#*=}"
+      shift
+      ;;
+    --json)
+      JSON=1
       shift
       ;;
     -h | --help)
@@ -44,12 +50,30 @@ fi
 
 failures=0
 
+json_string() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  value="${value//$'\n'/\\n}"
+  printf '"%s"' "$value"
+}
+
+record() {
+  local name="$1"
+  local status="$2"
+  RESULTS+=("${name}:${status}")
+
+  if [[ "$JSON" != "1" ]]; then
+    printf '%-7s %s\n' "$status" "$name"
+  fi
+}
+
 need() {
   local cmd="$1"
   if command -v "$cmd" >/dev/null 2>&1; then
-    printf 'ok      %s\n' "$cmd"
+    record "$cmd" ok
   else
-    printf 'missing %s\n' "$cmd"
+    record "$cmd" missing
     failures=$((failures + 1))
   fi
 }
@@ -61,6 +85,35 @@ need_group() {
   for cmd in "$@"; do
     need "$cmd"
   done
+}
+
+write_json() {
+  printf '{\n'
+  printf '  "profile": '
+  json_string "$PROFILE"
+  printf ',\n'
+  printf '  "ok": %s,\n' "$(if [[ "$failures" -eq 0 ]]; then printf true; else printf false; fi)"
+  printf '  "failures": %s,\n' "$failures"
+  printf '  "checks": [\n'
+
+  local first=1
+  local item name status
+  for item in "${RESULTS[@]}"; do
+    name="${item%:*}"
+    status="${item##*:}"
+    if [[ "$first" == "1" ]]; then
+      first=0
+    else
+      printf ',\n'
+    fi
+    printf '    {"name": '
+    json_string "$name"
+    printf ', "status": '
+    json_string "$status"
+    printf '}'
+  done
+  printf '\n  ]\n'
+  printf '}\n'
 }
 
 need_group "${INSTALL_BASE:-0}" git gh curl jq rg fd fzf tmux python3 node npm go op
@@ -76,15 +129,19 @@ need_group "${INSTALL_LOCAL_MODEL_RUNTIME:-0}" ollama
 need_group "${INSTALL_HARNESS:-0}" hc
 
 if [[ -f /var/lib/agentic-workstation/manifest.json ]]; then
-  printf 'ok      manifest\n'
+  record manifest ok
 else
-  printf 'missing manifest\n'
+  record manifest missing
   failures=$((failures + 1))
 fi
 
+if [[ "$JSON" == "1" ]]; then
+  write_json
+fi
+
 if [[ "$failures" -gt 0 ]]; then
-  echo "doctor failed: ${failures} missing checks" >&2
+  [[ "$JSON" == "1" ]] || echo "doctor failed: ${failures} missing checks" >&2
   exit 1
 fi
 
-echo "doctor passed for profile: ${PROFILE}"
+[[ "$JSON" == "1" ]] || echo "doctor passed for profile: ${PROFILE}"

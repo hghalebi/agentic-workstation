@@ -1,0 +1,23 @@
+name: Nightly
+
+"on":
+  workflow_dispatch:
+  schedule:
+    - cron: "42 4 * * *"
+
+jobs:
+  docker-install:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ubuntu: ["22.04", "24.04"]
+        profile: ["minimal", "agent-runner"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Docker install smoke
+        run: >-
+          docker build
+          --build-arg RUN_INSTALL=1
+          --build-arg PROFILE=${{ matrix.profile }}
+          -f tests/Dockerfile.ubuntu-${{ matrix.ubuntu }} .

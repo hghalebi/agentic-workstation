@@ -11,6 +11,8 @@ Use it to audit what the installer runs, update vendor sources, or install a sub
 ./install-agentic-tools.sh --profile factory --resume
 ./install-agentic-tools.sh --only agents
 ./install-agentic-tools.sh --skip browser
+./install-agentic-tools.sh --profile coding-agent --dry-run
+./install-agentic-tools.sh --profile coding-agent --json-plan
 WORKSPACE_REPO=git@github.com:hghalebi/project.git WORKSPACE_REF=main ./install-agentic-tools.sh --profile agent-runner
 ```
 
@@ -20,6 +22,9 @@ Health and lifecycle commands:
 ./scripts/doctor.sh --profile coding-agent
 ./scripts/auth-status.sh
 ./scripts/prepare-snapshot.sh
+./scripts/render-cloud-init.sh --user ubuntu --ssh-key ~/.ssh/id_ed25519.pub --profile agent-runner --ref v0.1.0
+./scripts/verify-lockfile.sh
+./scripts/audit-remote-installers.sh
 docker build -f tests/Dockerfile.ubuntu-24.04 .
 ```
 

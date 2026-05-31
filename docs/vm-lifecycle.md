@@ -25,13 +25,19 @@ Create new VMs from the snapshot. Run only the profile-specific layer:
 
 ## 3. Provision With Cloud-Init
 
-Use `cloud/cloud-init.yaml` for first boot.
+Render cloud-init user data for first boot:
 
-Before passing it to a provider:
+```bash
+./scripts/render-cloud-init.sh \
+  --user ubuntu \
+  --ssh-key ~/.ssh/id_ed25519.pub \
+  --profile agent-runner \
+  --repo https://github.com/hghalebi/agentic-workstation.git \
+  --ref v0.1.0 \
+  > cloud-init.agent-runner.yaml
+```
 
-1. Replace `REPLACE_WITH_PUBLIC_KEY` with an SSH public key.
-2. Change the default user if needed.
-3. Set a profile by exporting `AGENTIC_PROFILE` in the file, or leave the default `coding-agent`.
+Prefer a tag or commit for `--ref`. `main` is convenient, but not reproducible.
 
 Hetzner helper:
 

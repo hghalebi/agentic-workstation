@@ -28,6 +28,8 @@ Check status:
 
 ```bash
 ./scripts/auth-status.sh
+./scripts/auth-status.sh --json
 ```
 
 Expected output uses `ok` for available authenticated tools and `missing` for tools that are not installed or not authenticated.
+The human output also prints next-step login commands for missing checks.

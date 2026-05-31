@@ -18,3 +18,15 @@ repos:
         entry: bash -c 'shfmt -i 2 -ci -d install-agentic-tools.sh scripts/*.sh cloud/*.sh'
         language: system
         pass_filenames: false
+
+      - id: bats
+        name: bats
+        entry: bats tests/unit
+        language: system
+        pass_filenames: false
+
+      - id: verify-lockfile
+        name: verify lockfile
+        entry: ./scripts/verify-lockfile.sh
+        language: system
+        pass_filenames: false
