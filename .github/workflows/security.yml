@@ -14,7 +14,7 @@ jobs:
   scorecard:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ossf/scorecard-action@v2.4.0
         with:
           results_file: scorecard-results.sarif
@@ -27,7 +27,7 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Remote installer audit
         run: ./scripts/audit-remote-installers.sh
       - name: Verify lockfile
