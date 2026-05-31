@@ -57,6 +57,9 @@ load_env_file() {
   if [[ -f "$env_file" ]]; then
     # shellcheck disable=SC1090
     source "$env_file"
+    if [[ -n "${HCLOUD_TOKEN:-}" ]]; then
+      export HCLOUD_TOKEN
+    fi
   fi
 }
 
@@ -86,6 +89,7 @@ ensure_local_ssh_key() {
 
   if [[ ! -f "$private_key" ]]; then
     log "Generating SSH key: $private_key"
+    rm -f "$public_key"
     ssh-keygen -t ed25519 -N "" -C "agentic-workstation" -f "$private_key"
   fi
 
@@ -98,17 +102,19 @@ ensure_hcloud_ssh_key() {
   local public_key="$2"
   local existing_key_json
   local existing_public_key
-  local local_public_key
+  local existing_key_body
+  local local_key_body
 
   if existing_key_json="$(hcloud ssh-key describe "$key_name" --output json 2>/dev/null)"; then
-    if have jq; then
-      existing_public_key="$(jq -r '.public_key // .ssh_key.public_key // empty' <<<"$existing_key_json")"
-      local_public_key="$(<"$public_key")"
-      if [[ -n "$existing_public_key" && "$existing_public_key" != "$local_public_key" ]]; then
-        die "Hetzner SSH key '$key_name' exists but does not match $public_key; pass --ssh-key-name with a new name"
-      fi
-    else
-      echo "warning: jq is missing; cannot verify existing Hetzner SSH key material" >&2
+    have jq || die "jq is required to verify existing Hetzner SSH key '$key_name'"
+    existing_public_key="$(jq -r '.public_key // .ssh_key.public_key // empty' <<<"$existing_key_json")"
+    existing_key_body="$(awk '{print $1, $2}' <<<"$existing_public_key")"
+    local_key_body="$(awk '{print $1, $2}' "$public_key")"
+    if [[ -z "$existing_key_body" ]]; then
+      die "could not read public key material for existing Hetzner SSH key '$key_name'"
+    fi
+    if [[ "$existing_key_body" != "$local_key_body" ]]; then
+      die "Hetzner SSH key '$key_name' exists but does not match $public_key; pass --ssh-key-name with a new name"
     fi
     log "Using existing Hetzner SSH key: $key_name"
     return 0
@@ -323,12 +329,13 @@ have ssh-keygen || die "missing ssh-keygen"
 STATE_DIR="${AGENTIC_STATE_DIR:-${REPO_DIR}/state/hcloud}"
 CLOUD_INIT_DIR="${STATE_DIR}/cloud-init"
 SERVER_STATE_DIR="${STATE_DIR}/servers"
+STATE_NAME="$(sanitize_label_value "$SERVER_NAME")"
 mkdir -p "$CLOUD_INIT_DIR" "$SERVER_STATE_DIR"
 
 SSH_KEY_PATH="${SSH_KEY_PATH/#\~/${HOME}}"
 SSH_PUBLIC_KEY="${SSH_KEY_PATH}.pub"
-CLOUD_INIT_FILE="${CLOUD_INIT_DIR}/${SERVER_NAME}.yaml"
-SERVER_STATE_FILE="${SERVER_STATE_DIR}/${SERVER_NAME}.json"
+CLOUD_INIT_FILE="${CLOUD_INIT_DIR}/${STATE_NAME}.yaml"
+SERVER_STATE_FILE="${SERVER_STATE_DIR}/${STATE_NAME}.json"
 
 ensure_local_ssh_key "$SSH_KEY_PATH"
 write_cloud_init "$CLOUD_INIT_FILE" "$SSH_PUBLIC_KEY"
@@ -373,7 +380,13 @@ require_hcloud_auth
 ensure_hcloud_ssh_key "$SSH_KEY_NAME" "$SSH_PUBLIC_KEY"
 
 log "Creating Hetzner server: $SERVER_NAME"
-"${CREATE_CMD[@]}" >"$SERVER_STATE_FILE"
+SERVER_STATE_TMP="$(mktemp "${SERVER_STATE_FILE}.tmp.XXXXXXXX")"
+if "${CREATE_CMD[@]}" >"$SERVER_STATE_TMP"; then
+  mv "$SERVER_STATE_TMP" "$SERVER_STATE_FILE"
+else
+  rm -f "$SERVER_STATE_TMP"
+  exit 1
+fi
 
 SERVER_IPV4=""
 if have jq; then

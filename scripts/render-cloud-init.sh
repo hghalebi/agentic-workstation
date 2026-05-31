@@ -63,14 +63,26 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --workspace-repo)
+      [[ $# -ge 2 ]] || {
+        echo "--workspace-repo requires a value" >&2
+        exit 1
+      }
       WORKSPACE_REPO="$2"
       shift 2
       ;;
     --workspace-ref)
+      [[ $# -ge 2 ]] || {
+        echo "--workspace-ref requires a value" >&2
+        exit 1
+      }
       WORKSPACE_REF="$2"
       shift 2
       ;;
     --workspace-target)
+      [[ $# -ge 2 ]] || {
+        echo "--workspace-target requires a value" >&2
+        exit 1
+      }
       WORKSPACE_TARGET="$2"
       shift 2
       ;;
@@ -131,7 +143,7 @@ sed \
   -e "s|__REPO__|${REPO_URL}|g" \
   -e "s|__REF__|${REF}|g" \
   "$TEMPLATE" |
-  while IFS= read -r line; do
+  while IFS= read -r line || [[ -n "$line" ]]; do
     if [[ "$line" == "__WORKSPACE_EXPORTS__" ]]; then
       printf '%s' "$WORKSPACE_EXPORTS"
     else

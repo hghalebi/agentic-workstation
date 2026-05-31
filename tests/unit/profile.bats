@@ -26,7 +26,11 @@ setup() {
 }
 
 @test "cloud-init renderer can inject workspace hydration" {
-  run bash -c './scripts/render-cloud-init.sh --ssh-key-value "ssh-ed25519 AAAATEST test@example" --ref v0.1.0 --workspace-repo git@github.com:org/project.git --workspace-target /workspace/project | grep -q "export WORKSPACE_REPO"'
+  run bash -c './scripts/render-cloud-init.sh --ssh-key-value "ssh-ed25519 AAAATEST test@example" --ref v0.1.0 --workspace-repo git@github.com:org/project.git --workspace-ref main --workspace-target /workspace/project | grep -Eq "export WORKSPACE_REPO=.*git@github.com:org/project.git"'
+  [ "$status" -eq 0 ]
+  run bash -c './scripts/render-cloud-init.sh --ssh-key-value "ssh-ed25519 AAAATEST test@example" --ref v0.1.0 --workspace-repo git@github.com:org/project.git --workspace-ref main --workspace-target /workspace/project | grep -Eq "export WORKSPACE_REF=.*main"'
+  [ "$status" -eq 0 ]
+  run bash -c './scripts/render-cloud-init.sh --ssh-key-value "ssh-ed25519 AAAATEST test@example" --ref v0.1.0 --workspace-repo git@github.com:org/project.git --workspace-ref main --workspace-target /workspace/project | grep -Eq "export WORKSPACE_TARGET=.*/workspace/project"'
   [ "$status" -eq 0 ]
 }
 

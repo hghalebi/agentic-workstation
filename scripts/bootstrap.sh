@@ -18,6 +18,7 @@ Options:
   --repo URL         GitHub repository URL. Default: project repo
   --archive-url URL  Explicit tar.gz archive URL. Overrides --repo and --ref
   --dir PATH         Directory where the repo archive should be unpacked
+  --reuse-existing   Run an existing --dir checkout instead of downloading
   --resume           Pass --resume to the installer
   --no-doctor        Pass --no-doctor to the installer
 
@@ -48,6 +49,7 @@ REF="${AGENTIC_BOOTSTRAP_REF:-main}"
 REPO_URL="${AGENTIC_WORKSTATION_REPO:-https://github.com/hghalebi/agentic-workstation.git}"
 ARCHIVE_URL="${AGENTIC_WORKSTATION_ARCHIVE_URL:-}"
 TARGET_DIR="${AGENTIC_WORKSTATION_DIR:-}"
+REUSE_EXISTING="${AGENTIC_BOOTSTRAP_REUSE_EXISTING:-0}"
 INSTALLER_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -99,6 +101,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --dir=*)
       TARGET_DIR="${1#*=}"
+      shift
+      ;;
+    --reuse-existing)
+      REUSE_EXISTING=1
       shift
       ;;
     --resume)
@@ -180,9 +186,11 @@ github_archive_url() {
       ;;
   esac
 
-  owner_repo="${owner_repo%.git}"
   owner_repo="${owner_repo%%\?*}"
   owner_repo="${owner_repo%%#*}"
+  owner_repo="${owner_repo%/}"
+  owner_repo="${owner_repo%.git}"
+  owner_repo="${owner_repo%/}"
   [[ "$owner_repo" == */* ]] || return 1
 
   printf 'https://codeload.github.com/%s/tar.gz/%s\n' "$owner_repo" "$ref"
@@ -212,13 +220,16 @@ else
 fi
 
 if [[ -e "${TARGET_DIR}/install-agentic-tools.sh" ]]; then
+  if [[ "$REUSE_EXISTING" != "1" ]]; then
+    die "target directory already contains install-agentic-tools.sh: $TARGET_DIR; remove it or pass --reuse-existing"
+  fi
   log "Using existing checkout at $TARGET_DIR"
 else
   if [[ -n "$(find "$TARGET_DIR" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
     die "target directory is not empty and does not contain install-agentic-tools.sh: $TARGET_DIR"
   fi
 
-  archive_file="$(mktemp "${TMPDIR:-/tmp}/agentic-workstation-archive.XXXXXXXX.tar.gz")"
+  archive_file="$(mktemp "${TMPDIR:-/tmp}/agentic-workstation-archive.XXXXXXXX")"
   log "Downloading $ARCHIVE_URL"
   download "$ARCHIVE_URL" "$archive_file"
 
