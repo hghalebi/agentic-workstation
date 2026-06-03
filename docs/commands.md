@@ -10,6 +10,8 @@ curl -fsSL https://raw.githubusercontent.com/hghalebi/agentic-workstation/main/s
 ./install-agentic-tools.sh
 ./install-agentic-tools.sh --profile minimal
 ./install-agentic-tools.sh --profile factory --resume
+./install-agentic-tools.sh --profile openclaw-server
+./scripts/install-openclaw-server.sh
 ./install-agentic-tools.sh --only agents
 ./install-agentic-tools.sh --skip browser
 ./install-agentic-tools.sh --profile coding-agent --dry-run
@@ -21,6 +23,7 @@ curl -fsSL https://raw.githubusercontent.com/hghalebi/agentic-workstation/main/s
 ```bash
 ./scripts/doctor.sh --profile coding-agent
 ./scripts/doctor.sh --profile coding-agent --json
+./scripts/doctor.sh --profile openclaw-server
 ./scripts/auth-status.sh
 ./scripts/auth-status.sh --json
 ```

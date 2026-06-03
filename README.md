@@ -87,6 +87,8 @@ Install a named profile:
 ./install-agentic-tools.sh --profile minimal
 ./install-agentic-tools.sh --profile factory
 ./install-agentic-tools.sh --profile agent-runner
+./install-agentic-tools.sh --profile openclaw-server
+./scripts/install-openclaw-server.sh
 ```
 
 Resume after a failed install:
@@ -166,6 +168,7 @@ WORKSPACE_TARGET=/workspace/project \
 | `factory` | Full software-factory environment. |
 | `security` | Security review and supply-chain analysis. |
 | `local-llm` | Local model runtime. |
+| `openclaw-server` | OpenClaw server host with Docker, OpenTelemetry, Neon, Hetzner S3, and server hardening helpers. |
 
 Decision tree:
 
@@ -177,6 +180,7 @@ Decision tree:
 | Security analysis | `security` |
 | Every artifact and factory helper | `factory` |
 | Ollama or local models | `local-llm` |
+| OpenClaw server deployment base | `openclaw-server` |
 
 ## What Gets Installed
 
@@ -207,6 +211,20 @@ Factory layer:
 | Data/model | `deepagents`, `dvc`, `hf` |
 | Local models | `ollama`, when `INCLUDE_LOCAL_MODEL_RUNTIME=1` |
 
+OpenClaw server layer:
+
+| Area | Tools |
+| --- | --- |
+| Server base | `ufw`, `fail2ban`, `nginx`, `unattended-upgrades`, journald limits |
+| Docker | `docker-ce`, `docker-ce-cli`, `containerd.io`, Buildx, Docker Compose plugin via Docker's official apt repository |
+| Rust server tools | `sqlx-cli`, `cargo-nextest`, `cargo-watch` |
+| Layout | `/opt/openclaw/{app,tools,repos,otel,secrets,backups,logs}` |
+| Observability | OpenTelemetry Collector compose file and config under `/opt/openclaw/otel` |
+| Neon | `postgresql-client`, `sqlx-cli`, `/opt/openclaw/app/.env.example` |
+| Hetzner S3 | `awscli`, env template, bucket check script |
+| 1Password SSH | `/opt/openclaw/tools/op-ssh-helper` |
+| Dotfiles | optional clone of `https://github.com/hghalebi/dotfiles`; installer execution is opt-in |
+
 ## Auto-Configuration
 
 By default, the installer:
@@ -231,6 +249,7 @@ Run health checks:
 ```bash
 ./scripts/doctor.sh --profile coding-agent
 ./scripts/doctor.sh --profile coding-agent --json
+./scripts/doctor.sh --profile openclaw-server
 ```
 
 Check authentication status without handling secrets:
@@ -321,7 +340,7 @@ hf auth login
 - The script is designed to be rerunnable.
 - Auth flows stay out of the installer.
 - Secrets are not collected, written, or printed.
-- Docker, Kubernetes, Terraform/OpenTofu, AWS CLI, and Azure CLI are documented but not installed by default.
+- Docker is installed by the `openclaw-server` profile, but not by the default workstation profiles. Kubernetes, Terraform/OpenTofu, AWS CLI v2, and Azure CLI are documented but not installed by default.
 - Some tools use official remote install scripts. See [commands.md](commands.md) for the exact commands and source links.
 - Remote installers are audited in [docs/remote-installers.md](docs/remote-installers.md).
 - Tool pinning policy starts in [agentic-tools.lock.yaml](agentic-tools.lock.yaml).

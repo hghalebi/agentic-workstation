@@ -58,7 +58,10 @@ STATE_DIR="${STATE_DIR:-/var/lib/agentic-workstation}"
 MANIFEST_PATH="${MANIFEST_PATH:-${STATE_DIR}/manifest.json}"
 MODULE_ORDER=(
   base
+  server-base
+  docker
   runtimes
+  rust-server-tools
   version-managers
   git-helpers
   agents
@@ -68,6 +71,12 @@ MODULE_ORDER=(
   factory
   onepassword
   harness
+  openclaw-layout
+  opentelemetry
+  neon
+  hetzner-s3
+  onepassword-ssh
+  dotfiles
   workspace
   config
   manifest
@@ -175,7 +184,10 @@ load_profile() {
 module_description() {
   case "$1" in
     base) printf 'Core Ubuntu CLI and debugging tools' ;;
+    server-base) printf 'Server firewall, web, updates, intrusion prevention, and journal limits' ;;
+    docker) printf 'Docker Engine from the official Docker apt repository' ;;
     runtimes) printf 'Rust and uv runtime tooling' ;;
+    rust-server-tools) printf 'Rust server development tools' ;;
     version-managers) printf 'mise and aqua tool version managers' ;;
     git-helpers) printf 'YAML and Git diff helpers' ;;
     agents) printf 'Agent and model CLIs' ;;
@@ -185,6 +197,12 @@ module_description() {
     factory) printf 'Factory, security, artifact, tracing, and model helper tools' ;;
     onepassword) printf '1Password CLI' ;;
     harness) printf 'Harness CLI' ;;
+    openclaw-layout) printf 'OpenClaw server directory layout' ;;
+    opentelemetry) printf 'OpenTelemetry Collector Docker Compose stack' ;;
+    neon) printf 'Neon Postgres client support and env validation template' ;;
+    hetzner-s3) printf 'Hetzner S3 awscli support and bucket validation helper' ;;
+    onepassword-ssh) printf '1Password SSH public-key export and SSH client helper' ;;
+    dotfiles) printf 'Optional dotfiles clone and install hook' ;;
     workspace) printf 'Workspace copy and Git hydration' ;;
     config) printf 'Shell, Git, and hook auto-configuration' ;;
     manifest) printf 'Install manifest generation' ;;
@@ -194,8 +212,8 @@ module_description() {
 
 module_requires_sudo() {
   case "$1" in
-    base | version-managers | git-helpers | agents | browser | cloud | terminal | factory | onepassword | harness | workspace | config | manifest) return 0 ;;
-    runtimes) return 1 ;;
+    base | server-base | docker | version-managers | git-helpers | agents | browser | cloud | terminal | factory | onepassword | harness | openclaw-layout | opentelemetry | neon | hetzner-s3 | onepassword-ssh | dotfiles | workspace | config | manifest) return 0 ;;
+    runtimes | rust-server-tools) return 1 ;;
     *) return 1 ;;
   esac
 }
@@ -203,7 +221,10 @@ module_requires_sudo() {
 module_profile_enabled() {
   case "$1" in
     base) [[ "${INSTALL_BASE:-0}" == "1" ]] ;;
+    server-base) [[ "${INSTALL_SERVER_BASE:-0}" == "1" ]] ;;
+    docker) [[ "${INSTALL_DOCKER:-0}" == "1" ]] ;;
     runtimes) [[ "${INSTALL_RUNTIMES:-0}" == "1" ]] ;;
+    rust-server-tools) [[ "${INSTALL_RUST_SERVER_TOOLS:-0}" == "1" ]] ;;
     version-managers) [[ "${INSTALL_VERSION_MANAGERS:-0}" == "1" ]] ;;
     git-helpers) [[ "${INSTALL_GIT_HELPERS:-0}" == "1" ]] ;;
     agents) [[ "${INSTALL_AGENT_CLIS:-0}" == "1" ]] ;;
@@ -213,6 +234,12 @@ module_profile_enabled() {
     factory) [[ "${INSTALL_FACTORY_TOOLS:-0}" == "1" || "${INSTALL_SECURITY_TOOLS:-0}" == "1" || "${INSTALL_LOCAL_MODEL_RUNTIME:-0}" == "1" ]] ;;
     onepassword) [[ "${INSTALL_ONEPASSWORD:-0}" == "1" ]] ;;
     harness) [[ "${INSTALL_HARNESS:-0}" == "1" ]] ;;
+    openclaw-layout) [[ "${INSTALL_OPENCLAW_LAYOUT:-0}" == "1" ]] ;;
+    opentelemetry) [[ "${INSTALL_OPENTELEMETRY:-0}" == "1" ]] ;;
+    neon) [[ "${INSTALL_NEON_SUPPORT:-0}" == "1" ]] ;;
+    hetzner-s3) [[ "${INSTALL_HETZNER_S3:-0}" == "1" ]] ;;
+    onepassword-ssh) [[ "${INSTALL_ONEPASSWORD_SSH:-0}" == "1" ]] ;;
+    dotfiles) [[ -n "${DOTFILES_REPO:-}" ]] ;;
     workspace) [[ -n "${WORKSPACE_SOURCE:-}" || -n "${WORKSPACE_REPO:-}" ]] ;;
     config) [[ "${AUTO_CONFIG:-1}" == "1" ]] ;;
     manifest) return 0 ;;
@@ -385,7 +412,7 @@ apt_install_base() {
     ca-certificates gnupg lsb-release curl wget unzip git gh jq ripgrep fd-find fzf tmux direnv \
     make build-essential pkg-config libssl-dev python3 python3-pip python3-venv pipx \
     nodejs npm golang-go \
-    shellcheck sqlite3 netcat-openbsd git-lfs age tree rsync zip \
+    shellcheck shfmt bats sqlite3 netcat-openbsd git-lfs age tree rsync zip \
     lsof strace ltrace ncdu
 
   if ! have fd && have fdfind; then
@@ -398,9 +425,62 @@ apt_install_base() {
   $SUDO apt-get install -y postgresql-client redis-tools dnsutils || true
 
   log "Installing best-effort developer diagnostics"
-  for pkg in bats shfmt hyperfine duf pre-commit; do
+  for pkg in hyperfine duf pre-commit; do
     $SUDO apt-get install -y "$pkg" || log "Could not install optional apt package: $pkg"
   done
+}
+
+install_server_base() {
+  log "Installing server base packages"
+  $SUDO apt-get update -y
+  $SUDO apt-get install -y ufw fail2ban nginx unattended-upgrades systemd-timesyncd
+
+  log "Configuring unattended upgrades and journald limits"
+  $SUDO dpkg-reconfigure -f noninteractive unattended-upgrades || true
+  $SUDO mkdir -p /etc/systemd/journald.conf.d
+  local tmpfile
+  tmpfile="$(mktemp)"
+  cat >"$tmpfile" <<'EOF'
+[Journal]
+SystemMaxUse=1G
+SystemKeepFree=1G
+RuntimeMaxUse=256M
+MaxRetentionSec=14day
+EOF
+  $SUDO install -m 0644 "$tmpfile" /etc/systemd/journald.conf.d/agentic-workstation.conf
+  rm -f "$tmpfile"
+  $SUDO systemctl restart systemd-journald || true
+
+  $SUDO systemctl enable --now fail2ban nginx unattended-upgrades || true
+  if [[ "${OPENCLAW_ENABLE_UFW:-1}" == "1" ]]; then
+    log "Configuring ufw for SSH, HTTP, and HTTPS"
+    $SUDO ufw allow OpenSSH || true
+    $SUDO ufw allow 'Nginx Full' || true
+    $SUDO ufw --force enable || true
+  fi
+}
+
+install_docker_engine() {
+  if have docker && docker compose version >/dev/null 2>&1; then
+    log "Docker already installed"
+    docker --version || true
+    docker compose version || true
+    return
+  fi
+
+  log "Installing Docker Engine from the official apt repository"
+  $SUDO apt-get update -y
+  $SUDO apt-get install -y ca-certificates curl gnupg
+  $SUDO install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $SUDO gpg --batch --yes --dearmor -o /etc/apt/keyrings/docker.gpg
+  $SUDO chmod a+r /etc/apt/keyrings/docker.gpg
+
+  # shellcheck disable=SC1091
+  source /etc/os-release
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable" | $SUDO tee /etc/apt/sources.list.d/docker.list >/dev/null
+  $SUDO apt-get update -y
+  $SUDO apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  $SUDO systemctl enable --now docker
 }
 
 install_rust() {
@@ -431,6 +511,22 @@ install_uv() {
 install_runtimes() {
   install_rust
   install_uv
+}
+
+install_rust_server_tools() {
+  log "Installing Rust server tools"
+  export PATH="${HOME_DIR}/.cargo/bin:${PATH}"
+  have cargo || die "cargo is required before installing Rust server tools"
+
+  cargo install --locked sqlx-cli --no-default-features --features native-tls,postgres
+  cargo install --locked cargo-nextest
+  cargo install --locked cargo-watch
+
+  for cmd in sqlx cargo-nextest cargo-watch; do
+    if [[ -x "${HOME_DIR}/.cargo/bin/${cmd}" ]]; then
+      $SUDO ln -sf "${HOME_DIR}/.cargo/bin/${cmd}" "/usr/local/bin/${cmd}"
+    fi
+  done
 }
 
 install_mise() {
@@ -721,6 +817,259 @@ install_harness_cli() {
   fi
 }
 
+install_openclaw_layout() {
+  log "Creating OpenClaw server layout"
+  for dir in app tools repos otel secrets backups logs; do
+    $SUDO install -d -m 0750 -o root -g root "/opt/openclaw/${dir}"
+  done
+  $SUDO chmod 0700 /opt/openclaw/secrets
+}
+
+install_opentelemetry_collector() {
+  log "Writing OpenTelemetry Collector Docker Compose stack"
+  $SUDO install -d -m 0750 /opt/openclaw/otel
+
+  local tmpfile
+  tmpfile="$(mktemp)"
+  cat >"$tmpfile" <<'EOF'
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.101.0
+    restart: unless-stopped
+    command:
+      - --config=/etc/otelcol-contrib/config.yaml
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8888:8888"
+    volumes:
+      - ./collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+EOF
+  $SUDO install -m 0644 "$tmpfile" /opt/openclaw/otel/docker-compose.yaml
+
+  cat >"$tmpfile" <<'EOF'
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 256
+
+exporters:
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug]
+EOF
+  $SUDO install -m 0644 "$tmpfile" /opt/openclaw/otel/collector.yaml
+  rm -f "$tmpfile"
+}
+
+install_neon_support() {
+  log "Installing Neon Postgres client support"
+  $SUDO apt-get update -y
+  $SUDO apt-get install -y postgresql-client
+  if ! have sqlx; then
+    install_rust_server_tools
+  fi
+
+  $SUDO install -d -m 0750 /opt/openclaw/app
+  local tmpfile
+  tmpfile="$(mktemp)"
+  cat >"$tmpfile" <<'EOF'
+# Neon/Postgres connection used by application and sqlx.
+DATABASE_URL=postgresql://user:password@host.neon.tech/dbname?sslmode=require
+PGHOST=host.neon.tech
+PGDATABASE=dbname
+PGUSER=user
+PGPASSWORD=replace-me
+PGSSLMODE=require
+
+# Optional sqlx offline cache mode for CI.
+SQLX_OFFLINE=false
+EOF
+  $SUDO install -m 0640 "$tmpfile" /opt/openclaw/app/.env.example
+  rm -f "$tmpfile"
+}
+
+install_hetzner_s3_support() {
+  log "Installing Hetzner S3 support"
+  $SUDO apt-get update -y
+  $SUDO apt-get install -y awscli
+  $SUDO install -d -m 0750 /opt/openclaw/tools /opt/openclaw/secrets
+
+  local tmpfile
+  tmpfile="$(mktemp)"
+  cat >"$tmpfile" <<'EOF'
+# Hetzner Object Storage uses the S3 API. Set the endpoint for your region.
+AWS_ACCESS_KEY_ID=replace-me
+AWS_SECRET_ACCESS_KEY=replace-me
+AWS_DEFAULT_REGION=fsn1
+HETZNER_S3_ENDPOINT=https://fsn1.your-objectstorage.com
+HETZNER_S3_BUCKET=openclaw-backups
+EOF
+  $SUDO install -m 0640 "$tmpfile" /opt/openclaw/secrets/hetzner-s3.env.example
+
+  cat >"$tmpfile" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+env_file="${1:-/opt/openclaw/secrets/hetzner-s3.env}"
+if [[ -f "$env_file" ]]; then
+  # shellcheck disable=SC1090
+  source "$env_file"
+fi
+
+: "${HETZNER_S3_ENDPOINT:?set HETZNER_S3_ENDPOINT}"
+: "${HETZNER_S3_BUCKET:?set HETZNER_S3_BUCKET}"
+
+aws --endpoint-url "$HETZNER_S3_ENDPOINT" s3api head-bucket --bucket "$HETZNER_S3_BUCKET"
+echo "bucket ok: ${HETZNER_S3_BUCKET}"
+EOF
+  $SUDO install -m 0755 "$tmpfile" /opt/openclaw/tools/check-hetzner-s3-bucket.sh
+  rm -f "$tmpfile"
+}
+
+install_onepassword_ssh_helper() {
+  log "Installing 1Password SSH helper"
+  $SUDO install -d -m 0750 /opt/openclaw/tools
+  local tmpfile
+  tmpfile="$(mktemp)"
+  cat >"$tmpfile" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  op-ssh-helper --item ITEM [--vault VAULT] [--host HOST] [--output PATH]
+
+Exports a public key from a 1Password SSH key item and appends an SSH host
+block that uses the 1Password agent IdentityAgent socket.
+USAGE
+}
+
+item=""
+vault=""
+host="github.com"
+output="${HOME}/.ssh/id_ed25519_1password.pub"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --item) item="$2"; shift 2 ;;
+    --item=*) item="${1#*=}"; shift ;;
+    --vault) vault="$2"; shift 2 ;;
+    --vault=*) vault="${1#*=}"; shift ;;
+    --host) host="$2"; shift 2 ;;
+    --host=*) host="${1#*=}"; shift ;;
+    --output) output="$2"; shift 2 ;;
+    --output=*) output="${1#*=}"; shift ;;
+    -h | --help) usage; exit 0 ;;
+    *) echo "unknown argument: $1" >&2; usage >&2; exit 1 ;;
+  esac
+done
+
+[[ -n "$item" ]] || { usage >&2; exit 1; }
+command -v op >/dev/null 2>&1 || { echo "missing op CLI" >&2; exit 1; }
+
+mkdir -p "${HOME}/.ssh"
+chmod 0700 "${HOME}/.ssh"
+
+op_args=(item get "$item" --fields "public key")
+if [[ -n "$vault" ]]; then
+  op_args+=(--vault "$vault")
+fi
+op "${op_args[@]}" >"$output"
+chmod 0644 "$output"
+
+ssh_config="${HOME}/.ssh/config"
+touch "$ssh_config"
+chmod 0600 "$ssh_config"
+if ! grep -q "agentic-workstation 1password ${host}" "$ssh_config"; then
+  cat >>"$ssh_config" <<CONFIG
+
+# agentic-workstation 1password ${host}
+Host ${host}
+  IdentityAgent ~/.1password/agent.sock
+  IdentityFile ${output}
+  IdentitiesOnly yes
+CONFIG
+fi
+
+echo "public key exported: ${output}"
+EOF
+  $SUDO install -m 0755 "$tmpfile" /opt/openclaw/tools/op-ssh-helper
+  rm -f "$tmpfile"
+}
+
+install_dotfiles() {
+  if [[ -z "${DOTFILES_REPO:-}" ]]; then
+    log "Skipping dotfiles; set DOTFILES_REPO to enable"
+    return
+  fi
+
+  local target="${DOTFILES_TARGET:-${HOME_DIR}/.dotfiles}"
+  local use_sudo=0
+  if [[ "$target" != "$HOME_DIR" && "$target" != "${HOME_DIR}/"* ]]; then
+    use_sudo=1
+  fi
+
+  log "Installing optional dotfiles from ${DOTFILES_REPO}"
+  if [[ ! -d "${target}/.git" ]]; then
+    if [[ "$use_sudo" == "1" ]]; then
+      $SUDO git clone "$DOTFILES_REPO" "$target"
+    else
+      git clone "$DOTFILES_REPO" "$target"
+    fi
+  else
+    if [[ "$use_sudo" == "1" ]]; then
+      $SUDO git -C "$target" fetch --all --prune
+      $SUDO git -C "$target" pull --ff-only || log "Dotfiles pull skipped or not fast-forwardable"
+    else
+      git -C "$target" fetch --all --prune
+      git -C "$target" pull --ff-only || log "Dotfiles pull skipped or not fast-forwardable"
+    fi
+  fi
+
+  if [[ "${DOTFILES_RUN_INSTALL:-0}" == "1" ]]; then
+    if [[ -x "${target}/install.sh" ]]; then
+      if [[ "$use_sudo" == "1" ]]; then
+        $SUDO "${target}/install.sh"
+      else
+        "${target}/install.sh"
+      fi
+    elif [[ -f "${target}/Makefile" ]]; then
+      if [[ "$use_sudo" == "1" ]]; then
+        $SUDO make -C "$target" install
+      else
+        make -C "$target" install
+      fi
+    else
+      log "No dotfiles installer found in ${target}; clone only"
+    fi
+  fi
+}
+
 migrate_workspace() {
   if [[ -z "${WORKSPACE_SOURCE:-}" ]]; then
     log "Skipping workspace migration; set WORKSPACE_SOURCE=/path/to/workspace to enable"
@@ -857,6 +1206,23 @@ verify_tools() {
     python3 pipx node npm npx go rustc cargo uv uvx mise aqua \
     codex claude gemini copilot op gcloud hcloud neonctl clasp gws opencode openclaw aider llm openhands codeagents hc
 
+  if [[ "${INSTALL_SERVER_BASE:-0}" == "1" ]]; then
+    verify_tool_group "Server base checks" ufw fail2ban-client nginx
+  fi
+
+  if [[ "${INSTALL_DOCKER:-0}" == "1" ]]; then
+    verify_tool_group "Docker checks" docker
+    docker compose version || true
+  fi
+
+  if [[ "${INSTALL_RUST_SERVER_TOOLS:-0}" == "1" ]]; then
+    verify_tool_group "Rust server tool checks" sqlx cargo-nextest cargo-watch
+  fi
+
+  if [[ "${INSTALL_HETZNER_S3:-0}" == "1" ]]; then
+    verify_tool_group "Hetzner S3 checks" aws
+  fi
+
   if [[ "${INSTALL_FACTORY_TOOLS:-0}" == "1" ]]; then
     verify_tool_group "Factory tool checks" \
       task just yamllint pandoc pdftotext ffmpeg convert tesseract http deepagents hf dvc semgrep snyk gitleaks syft grype cosign trivy hadolint bpftrace perf
@@ -960,7 +1326,10 @@ main() {
   fi
 
   [[ "${INSTALL_BASE:-0}" == "1" ]] && run_module base apt_install_base
+  [[ "${INSTALL_SERVER_BASE:-0}" == "1" ]] && run_module server-base install_server_base
+  [[ "${INSTALL_DOCKER:-0}" == "1" ]] && run_module docker install_docker_engine
   [[ "${INSTALL_RUNTIMES:-0}" == "1" ]] && run_module runtimes install_runtimes
+  [[ "${INSTALL_RUST_SERVER_TOOLS:-0}" == "1" ]] && run_module rust-server-tools install_rust_server_tools
   [[ "${INSTALL_VERSION_MANAGERS:-0}" == "1" ]] && run_module version-managers install_version_managers
   [[ "${INSTALL_GIT_HELPERS:-0}" == "1" ]] && run_module git-helpers install_yaml_and_git_helpers
   [[ "${INSTALL_AGENT_CLIS:-0}" == "1" ]] && run_module agents install_agent_clis
@@ -972,6 +1341,12 @@ main() {
   fi
   [[ "${INSTALL_ONEPASSWORD:-0}" == "1" ]] && run_module onepassword install_1password_cli
   [[ "${INSTALL_HARNESS:-0}" == "1" ]] && run_module harness install_harness_cli
+  [[ "${INSTALL_OPENCLAW_LAYOUT:-0}" == "1" ]] && run_module openclaw-layout install_openclaw_layout
+  [[ "${INSTALL_OPENTELEMETRY:-0}" == "1" ]] && run_module opentelemetry install_opentelemetry_collector
+  [[ "${INSTALL_NEON_SUPPORT:-0}" == "1" ]] && run_module neon install_neon_support
+  [[ "${INSTALL_HETZNER_S3:-0}" == "1" ]] && run_module hetzner-s3 install_hetzner_s3_support
+  [[ "${INSTALL_ONEPASSWORD_SSH:-0}" == "1" ]] && run_module onepassword-ssh install_onepassword_ssh_helper
+  [[ -n "${DOTFILES_REPO:-}" ]] && run_module dotfiles install_dotfiles
   run_module workspace hydrate_workspace
   run_module config configure_workstation
   run_module manifest write_manifest

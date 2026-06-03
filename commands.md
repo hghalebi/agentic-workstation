@@ -11,6 +11,8 @@ curl -fsSL https://raw.githubusercontent.com/hghalebi/agentic-workstation/main/s
 curl -fsSL https://raw.githubusercontent.com/hghalebi/agentic-workstation/main/scripts/bootstrap.sh | bash -s -- --profile minimal
 ./install-agentic-tools.sh --profile coding-agent
 ./install-agentic-tools.sh --profile factory --resume
+./install-agentic-tools.sh --profile openclaw-server
+./scripts/install-openclaw-server.sh
 ./install-agentic-tools.sh --only agents
 ./install-agentic-tools.sh --skip browser
 ./install-agentic-tools.sh --profile coding-agent --dry-run
@@ -22,6 +24,7 @@ Health and lifecycle commands:
 
 ```bash
 ./scripts/doctor.sh --profile coding-agent
+./scripts/doctor.sh --profile openclaw-server
 ./scripts/auth-status.sh
 ./scripts/prepare-snapshot.sh
 ./scripts/render-cloud-init.sh --user ubuntu --ssh-key ~/.ssh/id_ed25519.pub --profile agent-runner --ref v0.1.0
@@ -52,6 +55,63 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 Source: https://docs.astral.sh/uv/getting-started/installation/
+
+## Server Base
+
+```bash
+apt-get update -y
+apt-get install -y ufw fail2ban nginx unattended-upgrades systemd-timesyncd
+install -d -m 0755 /etc/systemd/journald.conf.d
+systemctl enable --now fail2ban nginx unattended-upgrades
+ufw allow OpenSSH
+ufw allow 'Nginx Full'
+ufw --force enable
+```
+
+## Docker Engine
+
+```bash
+apt-get update -y
+apt-get install -y ca-certificates curl gnupg
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+chmod a+r /etc/apt/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list
+apt-get update -y
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+systemctl enable --now docker
+```
+
+Source: https://docs.docker.com/engine/install/ubuntu/
+
+## Rust Server Tools
+
+```bash
+cargo install --locked sqlx-cli --no-default-features --features native-tls,postgres
+cargo install --locked cargo-nextest
+cargo install --locked cargo-watch
+```
+
+Sources:
+
+- https://github.com/launchbadge/sqlx
+- https://nexte.st/
+- https://github.com/watchexec/cargo-watch
+
+## OpenClaw Server Helpers
+
+```bash
+install -d -m 0750 /opt/openclaw/{app,tools,repos,otel,secrets,backups,logs}
+install -m 0644 docker-compose.yaml /opt/openclaw/otel/docker-compose.yaml
+install -m 0644 collector.yaml /opt/openclaw/otel/collector.yaml
+install -m 0640 .env.example /opt/openclaw/app/.env.example
+install -m 0640 hetzner-s3.env.example /opt/openclaw/secrets/hetzner-s3.env.example
+install -m 0755 check-hetzner-s3-bucket.sh /opt/openclaw/tools/check-hetzner-s3-bucket.sh
+install -m 0755 op-ssh-helper /opt/openclaw/tools/op-ssh-helper
+git clone https://github.com/hghalebi/dotfiles /root/.dotfiles
+```
+
+The OpenTelemetry Collector runs as a Compose service using `otel/opentelemetry-collector-contrib`. Neon support uses `postgresql-client`, `sqlx-cli`, and normal Postgres connection strings; it does not install a local Postgres server.
 
 ## mise
 

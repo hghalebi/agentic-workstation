@@ -20,6 +20,31 @@ modules:
       - npm
       - go
       - op
+      - shellcheck
+      - shfmt
+      - bats
+
+  server-base:
+    description: Server firewall, web, updates, intrusion prevention, and journal limits
+    requires_sudo: true
+    requires_network: true
+    idempotent_marker: server-base
+    package_sources:
+      - apt
+    verify:
+      - ufw
+      - fail2ban-client
+      - nginx
+
+  docker:
+    description: Docker Engine from the official Docker apt repository
+    requires_sudo: true
+    requires_network: true
+    idempotent_marker: docker
+    package_sources:
+      - apt-repository
+    verify:
+      - docker
 
   runtimes:
     description: Rust and uv runtime tooling
@@ -34,6 +59,18 @@ modules:
       - cargo
       - uv
       - uvx
+
+  rust-server-tools:
+    description: Rust server development tools
+    requires_sudo: false
+    requires_network: true
+    idempotent_marker: rust-server-tools
+    package_sources:
+      - cargo
+    verify:
+      - sqlx
+      - cargo-nextest
+      - cargo-watch
 
   version-managers:
     description: mise and aqua tool version managers
@@ -155,6 +192,76 @@ modules:
       - remote-installer
     verify:
       - hc
+
+  openclaw-layout:
+    description: OpenClaw server directory layout
+    requires_sudo: true
+    requires_network: false
+    idempotent_marker: openclaw-layout
+    package_sources: []
+    verify:
+      - /opt/openclaw/app
+      - /opt/openclaw/tools
+      - /opt/openclaw/repos
+      - /opt/openclaw/otel
+      - /opt/openclaw/secrets
+      - /opt/openclaw/backups
+      - /opt/openclaw/logs
+
+  opentelemetry:
+    description: OpenTelemetry Collector Docker Compose stack
+    requires_sudo: true
+    requires_network: false
+    idempotent_marker: opentelemetry
+    package_sources:
+      - docker-compose
+    verify:
+      - /opt/openclaw/otel/docker-compose.yaml
+      - /opt/openclaw/otel/collector.yaml
+
+  neon:
+    description: Neon Postgres client support and env validation template
+    requires_sudo: true
+    requires_network: true
+    idempotent_marker: neon
+    package_sources:
+      - apt
+      - cargo
+    verify:
+      - psql
+      - sqlx
+      - /opt/openclaw/app/.env.example
+
+  hetzner-s3:
+    description: Hetzner S3 awscli support and bucket validation helper
+    requires_sudo: true
+    requires_network: true
+    idempotent_marker: hetzner-s3
+    package_sources:
+      - apt
+    verify:
+      - aws
+      - /opt/openclaw/secrets/hetzner-s3.env.example
+      - /opt/openclaw/tools/check-hetzner-s3-bucket.sh
+
+  onepassword-ssh:
+    description: 1Password SSH public-key export and SSH client helper
+    requires_sudo: true
+    requires_network: false
+    idempotent_marker: onepassword-ssh
+    package_sources: []
+    verify:
+      - /opt/openclaw/tools/op-ssh-helper
+
+  dotfiles:
+    description: Optional dotfiles clone and install hook
+    requires_sudo: true
+    requires_network: true
+    idempotent_marker: dotfiles
+    package_sources:
+      - git
+    verify:
+      - git
 
   workspace:
     description: Workspace copy and Git hydration

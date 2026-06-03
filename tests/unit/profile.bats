@@ -10,6 +10,11 @@ setup() {
   [ "$status" -eq 0 ]
 }
 
+@test "openclaw-server profile enables server modules and dotfiles" {
+  run bash -c './install-agentic-tools.sh --profile openclaw-server --json-plan | jq -e ".profile == \"openclaw-server\" and (.modules[] | select(.name == \"docker\" and .enabled == true)) and (.modules[] | select(.name == \"opentelemetry\" and .enabled == true)) and (.modules[] | select(.name == \"dotfiles\" and .enabled == true))"'
+  [ "$status" -eq 0 ]
+}
+
 @test "unknown profile fails" {
   run ./install-agentic-tools.sh --profile nope --dry-run
   [ "$status" -ne 0 ]
