@@ -5,6 +5,10 @@ Before tagging a release:
 1. Run local validation.
 
    ```bash
+   cargo fmt --check
+   cargo clippy --all-targets --all-features -- -D warnings
+   cargo test --all-targets --all-features
+   cargo run -- verify-lockfile
    PRE_COMMIT_HOME=/tmp/pre-commit-cache pre-commit run --all-files
    gitleaks detect --source . --no-git --redact --verbose
    ./scripts/verify-lockfile.sh
@@ -30,8 +34,8 @@ Before tagging a release:
 5. Create an annotated tag.
 
    ```bash
-   git tag -a v0.1.0 -m "v0.1.0"
-   git push origin v0.1.0
+   git tag -a vX.Y.Z -m "vX.Y.Z"
+   git push origin vX.Y.Z
    ```
 
 6. Publish release notes with:

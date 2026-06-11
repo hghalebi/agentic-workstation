@@ -55,7 +55,7 @@ The snapshot path should be the preferred day-to-day flow because the repo
 already treats VM startup time as a first-class concern.
 
 ```bash
-just hcloud-image profile=base-image ref=v0.1.0
+just hcloud-image profile=base-image ref=v0.1.1
 ```
 
 Desired behavior:
@@ -204,7 +204,7 @@ HCLOUD_LOCATION=fsn1
 HCLOUD_SERVER_TYPE=cx32
 HCLOUD_IMAGE=ubuntu-24.04
 HCLOUD_SSH_KEY=personal-laptop
-AGENTIC_BOOTSTRAP_REF=v0.1.0
+AGENTIC_BOOTSTRAP_REF=v0.1.1
 AGENTIC_HCLOUD_USER=ubuntu
 AGENTIC_HCLOUD_LABEL_OWNER=hghalebi
 ```

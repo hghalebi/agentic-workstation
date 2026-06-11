@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Nothing yet.
+
+## v0.1.1 - 2026-06-12
+
+- Added a typed Rust CLI for read-only install planning and lockfile validation.
+- Added Nix flake packaging for the Rust CLI and kept `.#check` for the shell/static validation graph.
+- Enforced `agentic-tools.lock.yaml` pins from installer package commands instead of using the lockfile only as documentation.
+- Pinned previously moving npm, uv, pip, Go, Cargo, and Hadolint install targets.
 - Added installer `--dry-run`, `--plan`, and `--json-plan`.
 - Added `modules.yaml`, `agentic-tools.lock.yaml`, lockfile verification, and remote installer audit tooling.
 - Added JSON output for `scripts/doctor.sh` and expanded auth readiness reporting.

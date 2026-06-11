@@ -31,6 +31,12 @@ Create new VMs from the snapshot. Run only the profile-specific layer:
 ./install-agentic-tools.sh --profile agent-runner --resume
 ```
 
+Inspect the plan before mutation:
+
+```bash
+./scripts/render-plan.sh --profile agent-runner | jq .
+```
+
 ## 3. Provision With Cloud-Init
 
 Render cloud-init user data for first boot:
@@ -41,7 +47,7 @@ Render cloud-init user data for first boot:
   --ssh-key ~/.ssh/id_ed25519.pub \
   --profile agent-runner \
   --repo https://github.com/hghalebi/agentic-workstation.git \
-  --ref v0.1.0 \
+  --ref v0.1.1 \
   > cloud-init.agent-runner.yaml
 ```
 

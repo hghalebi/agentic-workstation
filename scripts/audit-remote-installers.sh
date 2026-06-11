@@ -14,7 +14,7 @@ for file in "${files[@]}"; do
   while IFS=: read -r line text; do
     escaped="${text//|/\\|}"
     printf "| \`%s\` | %s | \`%s\` |\n" "$file" "$line" "$escaped"
-  done < <(grep -En '(curl|wget).*(https://|http://)|https://.*\|.*(sh|bash)|go install .*@latest|npm install -g .*@latest|uv tool install .*latest' "$file" || true)
+  done < <(grep -En '(curl|wget).*(https://|http://)|https://.*\|.*(sh|bash)|go install .*@latest|npm install -g .*@latest|uv tool install .*latest|releases/latest' "$file" || true)
 done
 
 echo

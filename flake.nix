@@ -25,11 +25,34 @@
               !(lib.elem base [
                 ".direnv"
                 ".git"
+                ".cache"
                 "result"
+                "target"
+                "tmp"
               ]);
           };
 
+          rustInputs = with pkgs; [
+            cargo
+            clippy
+            rust-analyzer
+            rustc
+            rustfmt
+          ];
+
+          agenticWorkstation = pkgs.rustPlatform.buildRustPackage {
+            pname = "agentic-workstation";
+            version = "0.1.0";
+
+            inherit src;
+
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+            };
+          };
+
           checkInputs = with pkgs; [
+            agenticWorkstation
             actionlint
             bash
             bats
@@ -81,14 +104,19 @@
           };
         in
         {
-          packages.default = checkScript;
+          packages.agentic-workstation = agenticWorkstation;
+          packages.check = checkScript;
+          packages.default = agenticWorkstation;
 
           apps.default = {
             type = "app";
-            program = "${checkScript}/bin/agentic-workstation-check";
+            program = "${agenticWorkstation}/bin/agentic-workstation";
           };
 
-          apps.check = self.apps.${system}.default;
+          apps.check = {
+            type = "app";
+            program = "${checkScript}/bin/agentic-workstation-check";
+          };
 
           apps.docker-smoke = {
             type = "app";
@@ -105,6 +133,22 @@
               cd repo
 
               ${runStaticChecks}
+
+              touch $out
+            '';
+
+          checks.rust-package = agenticWorkstation;
+
+          checks.rustfmt = pkgs.runCommandNoCC "agentic-workstation-rustfmt"
+            {
+              nativeBuildInputs = rustInputs;
+            }
+            ''
+              cp -R ${src} repo
+              chmod -R u+w repo
+              cd repo
+
+              cargo fmt --check
 
               touch $out
             '';
@@ -127,7 +171,7 @@
             '';
 
           devShells.default = pkgs.mkShell {
-            packages = checkInputs ++ (with pkgs; [
+            packages = checkInputs ++ rustInputs ++ (with pkgs; [
               curl
               fd
               gh
@@ -140,6 +184,8 @@
               export PRE_COMMIT_HOME="''${PRE_COMMIT_HOME:-$PWD/.cache/pre-commit}"
 
               echo "Agentic Workstation Nix shell ready."
+              echo "Run: agentic-workstation plan --profile coding-agent --json"
+              echo "Run: cargo test"
               echo "Run: nix run .#check"
               echo "Run: nix flake check"
               echo "Run: nix run .#docker-smoke"

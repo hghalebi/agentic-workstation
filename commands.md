@@ -27,7 +27,7 @@ Health and lifecycle commands:
 ./scripts/doctor.sh --profile openclaw-server
 ./scripts/auth-status.sh
 ./scripts/prepare-snapshot.sh
-./scripts/render-cloud-init.sh --user ubuntu --ssh-key ~/.ssh/id_ed25519.pub --profile agent-runner --ref v0.1.0
+./scripts/render-cloud-init.sh --user ubuntu --ssh-key ~/.ssh/id_ed25519.pub --profile agent-runner --ref v0.1.1
 ./scripts/verify-lockfile.sh
 ./scripts/audit-remote-installers.sh
 docker build -f tests/Dockerfile.ubuntu-24.04 .
@@ -87,9 +87,9 @@ Source: https://docs.docker.com/engine/install/ubuntu/
 ## Rust Server Tools
 
 ```bash
-cargo install --locked sqlx-cli --no-default-features --features native-tls,postgres
-cargo install --locked cargo-nextest
-cargo install --locked cargo-watch
+cargo install --locked sqlx-cli --version 0.9.0 --no-default-features --features native-tls,postgres
+cargo install --locked cargo-nextest --version 0.9.137
+cargo install --locked cargo-watch --version 8.5.3
 ```
 
 Sources:
@@ -136,8 +136,8 @@ Source: https://aquaproj.github.io/docs/products/aqua-installer/
 ## YAML and Git Helpers
 
 ```bash
-go install github.com/mikefarah/yq/v4@latest
-cargo install --locked git-delta
+go install github.com/mikefarah/yq/v4@v4.45.4
+cargo install --locked git-delta --version 0.18.2
 ```
 
 Sources:
@@ -148,7 +148,7 @@ Sources:
 ## Zellij
 
 ```bash
-cargo install --locked zellij
+cargo install --locked zellij --version 0.42.2
 ln -sf "$HOME/.cargo/bin/zellij" /usr/local/bin/zellij
 ```
 
@@ -157,17 +157,17 @@ Source: https://zellij.dev/documentation/installation.html
 ## Agent and Model CLIs
 
 ```bash
-npm install -g @openai/codex
-npm install -g @anthropic-ai/claude-code
-npm install -g @google/gemini-cli
-npm install -g @github/copilot
-npm install -g opencode-ai
-npm install -g openclaw@latest
-npm install -g codeagents
-uv tool install --force llm
-uv tool install --force openhands --python 3.12
-uv tool install --force --python python3.12 --with pip aider-chat@latest
-python3 -m pip install --user --break-system-packages --upgrade codeagents
+npm install -g @openai/codex@0.18.0
+npm install -g @anthropic-ai/claude-code@1.0.0
+npm install -g @google/gemini-cli@0.1.12
+npm install -g @github/copilot@0.0.328
+npm install -g opencode-ai@0.5.16
+npm install -g openclaw@0.4.4
+npm install -g codeagents@0.3.4
+uv tool install --force llm==0.26
+uv tool install --force openhands==0.39.0 --python 3.12
+uv tool install --force --python python3.12 --with pip aider-chat==0.84.0
+python3 -m pip install --user --break-system-packages --upgrade codeagents==0.3.4
 ```
 
 Sources:
@@ -186,8 +186,8 @@ Sources:
 ## MCP and Browser Helpers
 
 ```bash
-npm install -g @modelcontextprotocol/inspector
-npm install -g playwright
+npm install -g @modelcontextprotocol/inspector@0.16.8
+npm install -g playwright@1.52.0
 npx -y playwright install --with-deps chromium
 ```
 
@@ -199,8 +199,8 @@ Sources:
 ## Factory: Task Runners
 
 ```bash
-npm install -g @go-task/cli
-cargo install --locked just
+npm install -g @go-task/cli@3.44.1
+cargo install --locked just --version 1.40.0
 ```
 
 Sources:
@@ -211,17 +211,17 @@ Sources:
 ## Factory: Security and Supply Chain
 
 ```bash
-uv tool install semgrep
-npm install -g snyk
-go install github.com/zricethezav/gitleaks/v8@latest
+uv tool install semgrep==1.122.0
+npm install -g snyk@1.1296.2
+go install github.com/zricethezav/gitleaks/v8@v8.24.3
 curl -sSfL https://get.anchore.io/syft | sh -s -- -b /usr/local/bin
 curl -sSfL https://get.anchore.io/grype | sh -s -- -b /usr/local/bin
-go install github.com/sigstore/cosign/v3/cmd/cosign@latest
+go install github.com/sigstore/cosign/v3/cmd/cosign@v3.0.0
 wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor -o /usr/share/keyrings/trivy.gpg
 echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" > /etc/apt/sources.list.d/trivy.list
 apt-get update -y
 apt-get install -y trivy
-curl -fsSLo /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64
+curl -fsSLo /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v2.14.0/hadolint-Linux-x86_64
 chmod +x /usr/local/bin/hadolint
 ```
 
@@ -250,8 +250,8 @@ apt-get install -y httpie pandoc poppler-utils ffmpeg imagemagick tesseract-ocr
 ## Factory: Data and Model Helpers
 
 ```bash
-uv tool install deepagents-cli
-uv tool install dvc
+uv tool install deepagents-cli==0.0.8
+uv tool install dvc==3.59.1
 curl -LsSf https://hf.co/cli/install.sh | bash
 curl -fsSL https://ollama.com/install.sh | sh
 ```
@@ -266,8 +266,8 @@ Sources:
 ## Google Apps Script and Workspace
 
 ```bash
-npm install -g @google/clasp
-npm install -g @googleworkspace/cli
+npm install -g @google/clasp@3.0.6
+npm install -g @googleworkspace/cli@1.5.0
 ```
 
 Sources:
@@ -289,7 +289,7 @@ Source: https://docs.cloud.google.com/sdk/docs/install-sdk
 ## Hetzner Cloud CLI
 
 ```bash
-go install github.com/hetznercloud/cli/cmd/hcloud@latest
+go install github.com/hetznercloud/cli/cmd/hcloud@v1.50.0
 ln -sf "$HOME/go/bin/hcloud" /usr/local/bin/hcloud
 ```
 
@@ -298,7 +298,7 @@ Source: https://github.com/hetznercloud/cli
 ## Neon CLI
 
 ```bash
-npm install -g neonctl
+npm install -g neonctl@2.13.0
 ```
 
 Source: https://neon.com/cli

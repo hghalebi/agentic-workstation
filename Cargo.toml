@@ -1,0 +1,21 @@
+[package]
+name = "agentic-workstation"
+version = "0.1.1"
+edition = "2024"
+rust-version = "1.87"
+license = "MIT"
+description = "Typed planning and validation CLI for Agentic Workstation"
+
+[dependencies]
+clap = { version = "4.5.51", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+serde_yaml = "0.9.34"
+thiserror = "2.0.17"
+
+[dev-dependencies]
+tempfile = "3.23.0"
+
+[lints.clippy]
+expect_used = "deny"
+unwrap_used = "deny"

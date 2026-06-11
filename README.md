@@ -15,6 +15,21 @@ base image -> cloud-init -> profile install -> workspace hydration -> health che
 
 The Bash installer still works as the main entrypoint. Profiles, helper scripts, cloud-init, manifests, and snapshot cleanup make it usable across many VMs.
 
+Read-only planning and lockfile validation also ship as a typed Rust CLI:
+
+```bash
+cargo run -- plan --profile coding-agent --json
+cargo run -- verify-lockfile
+```
+
+The Nix flake builds that CLI and runs the static validation graph:
+
+```bash
+nix develop
+nix run .#check
+nix flake check
+```
+
 ## Who This Is For
 
 - Solo technical founders who want a fresh AI coding VM in minutes.
@@ -294,7 +309,7 @@ For unattended provisioning, use:
   --user ubuntu \
   --ssh-key ~/.ssh/id_ed25519.pub \
   --profile agent-runner \
-  --ref v0.1.0 \
+  --ref v0.1.1 \
   > cloud-init.agent-runner.yaml
 ```
 
@@ -353,6 +368,10 @@ Run:
 bash -n install-agentic-tools.sh scripts/*.sh cloud/*.sh
 shellcheck install-agentic-tools.sh scripts/*.sh cloud/*.sh
 shfmt -i 2 -ci -d install-agentic-tools.sh scripts/*.sh cloud/*.sh
+cargo fmt --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test --all-targets --all-features
+cargo run -- verify-lockfile
 pre-commit run --all-files
 ```
 

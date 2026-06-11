@@ -32,6 +32,11 @@ lint:
     bash -n install-agentic-tools.sh scripts/*.sh cloud/*.sh
     shellcheck install-agentic-tools.sh scripts/*.sh cloud/*.sh
     shfmt -i 2 -ci -d install-agentic-tools.sh scripts/*.sh cloud/*.sh
+    cargo fmt --check
+    cargo clippy --all-targets --all-features -- -D warnings
+
+rust-test:
+    cargo test --all-targets --all-features
 
 audit:
     ./scripts/verify-lockfile.sh

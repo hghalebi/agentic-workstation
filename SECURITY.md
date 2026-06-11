@@ -45,8 +45,12 @@ Auth commands belong in documentation only. Use `op`, `gh`, cloud CLIs, and mode
 Run:
 
 ```bash
+./scripts/render-plan.sh --profile coding-agent | jq .
 ./scripts/verify-lockfile.sh
+cargo run -- verify-lockfile
 ./scripts/audit-remote-installers.sh
 ```
 
 Every remote installer should be documented in `agentic-tools.lock.yaml` or removed. Prefer pinned package versions and reproducible image refs over moving `main` branches or `latest` package targets.
+
+The typed Rust validator owns read-only lockfile policy. Installer package commands should consume `agentic-tools.lock.yaml` pins rather than duplicating versions in shell code.

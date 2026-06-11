@@ -14,14 +14,15 @@ This project installs tools first and configures machines second. Configuration 
 - Cloud-init rendering for first boot.
 - Snapshot cleanup script.
 - Docker smoke test.
-- Lockfile skeleton and remote installer audit.
+- Typed Rust planner and lockfile validator.
+- Lockfile-backed installer package pins and remote installer audit.
 - JSON doctor output and expanded auth status.
 - Devcontainer, Bats tests, and security workflow.
 
 ## Next Reliability Work
 
-- Enforce `agentic-tools.lock.yaml` in install commands instead of using it only for audit.
 - Publish expected manifests for each profile.
+- Add Nix CI coverage for `nix flake check`.
 - Add release SBOM and checksum bundle.
 - Add Packer image verification jobs.
 - Publish first tagged release.

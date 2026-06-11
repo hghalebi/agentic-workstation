@@ -37,9 +37,15 @@ go:
   github.com/sigstore/cosign/v3/cmd/cosign: "v3.0.0"
 
 cargo:
+  sqlx-cli: "0.9.0"
+  cargo-nextest: "0.9.137"
+  cargo-watch: "8.5.3"
   git-delta: "0.18.2"
   zellij: "0.42.2"
   just: "1.40.0"
+
+github_releases:
+  hadolint/hadolint: "v2.14.0"
 
 remote_installers:
   rustup:
@@ -76,4 +82,8 @@ remote_installers:
   harness:
     url: https://raw.githubusercontent.com/harness/harness-cli/v2/install
     verification: official GitHub raw endpoint
+    exception: documented
+  hadolint:
+    url: https://github.com/hadolint/hadolint/releases/download/v2.14.0
+    verification: pinned GitHub release tag; binary download
     exception: documented

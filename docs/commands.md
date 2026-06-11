@@ -51,7 +51,7 @@ WORKSPACE_TARGET=/workspace/project \
   --user ubuntu \
   --ssh-key ~/.ssh/id_ed25519.pub \
   --profile agent-runner \
-  --ref v0.1.0 \
+  --ref v0.1.1 \
   > cloud-init.agent-runner.yaml
 ```
 
@@ -70,6 +70,11 @@ bash -n install-agentic-tools.sh scripts/*.sh cloud/*.sh
 shellcheck install-agentic-tools.sh scripts/*.sh cloud/*.sh
 shfmt -i 2 -ci -d install-agentic-tools.sh scripts/*.sh cloud/*.sh
 PRE_COMMIT_HOME=/tmp/pre-commit-cache pre-commit run --all-files
+cargo fmt --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test --all-targets --all-features
+cargo run -- plan --profile coding-agent --json
+cargo run -- verify-lockfile
 gitleaks detect --source . --no-git --redact --verbose
 ./scripts/verify-lockfile.sh
 ./scripts/audit-remote-installers.sh

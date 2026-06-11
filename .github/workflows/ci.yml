@@ -14,6 +14,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y shellcheck shfmt pre-commit yamllint jq bats golang-go
           go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+          rustup component add rustfmt clippy
       - name: Syntax check
         run: bash -n install-agentic-tools.sh scripts/*.sh cloud/*.sh
       - name: ShellCheck
@@ -35,6 +36,21 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y bats jq
       - name: Bats
         run: bats tests/unit
+
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Rust components
+        run: rustup component add rustfmt clippy
+      - name: Rust formatting
+        run: cargo fmt --check
+      - name: Rust lints
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Rust tests
+        run: cargo test --all-targets --all-features
+      - name: Lockfile validation
+        run: cargo run -- verify-lockfile
 
   docker-smoke:
     runs-on: ubuntu-latest

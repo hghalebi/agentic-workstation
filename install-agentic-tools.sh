@@ -46,6 +46,7 @@ else
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOCKFILE_PATH="${LOCKFILE_PATH:-${SCRIPT_DIR}/agentic-tools.lock.yaml}"
 PROFILE="${PROFILE:-coding-agent}"
 ONLY_MODULES=""
 SKIP_MODULES=""
@@ -93,6 +94,52 @@ have() {
 die() {
   echo "error: $*" >&2
   exit 1
+}
+
+locked_tool_version() {
+  local section="$1"
+  local tool="$2"
+  local version
+
+  [[ -f "$LOCKFILE_PATH" ]] || die "missing lockfile: ${LOCKFILE_PATH}"
+
+  version="$(awk -v section="$section" -v tool="$tool" '
+    $0 ~ "^[[:space:]]*" section ":[[:space:]]*$" {
+      in_section = 1
+      next
+    }
+    in_section && $0 ~ "^[^[:space:]][^:]*:" {
+      exit
+    }
+    in_section {
+      line = $0
+      sub(/^[[:space:]]+/, "", line)
+      if (line == "" || line ~ /^#/) {
+        next
+      }
+      key = line
+      sub(/:.*/, "", key)
+      gsub(/^"|"$/, "", key)
+      if (key == tool) {
+        value = line
+        sub(/^[^:]+:[[:space:]]*/, "", value)
+        sub(/[[:space:]]+#.*/, "", value)
+        gsub(/^"|"$/, "", value)
+        print value
+        exit
+      }
+    }
+  ' "$LOCKFILE_PATH")"
+
+  [[ -n "$version" ]] || die "missing pinned version in ${LOCKFILE_PATH}: ${section}.${tool}"
+
+  case "$version" in
+    latest | *@latest | *"<pinned-version>"* | *TODO* | *FIXME*)
+      die "invalid moving or placeholder version in ${LOCKFILE_PATH}: ${section}.${tool}=${version}"
+      ;;
+  esac
+
+  printf '%s' "$version"
 }
 
 parse_args() {
@@ -518,9 +565,9 @@ install_rust_server_tools() {
   export PATH="${HOME_DIR}/.cargo/bin:${PATH}"
   have cargo || die "cargo is required before installing Rust server tools"
 
-  cargo install --locked sqlx-cli --no-default-features --features native-tls,postgres
-  cargo install --locked cargo-nextest
-  cargo install --locked cargo-watch
+  cargo install --locked sqlx-cli --version "$(locked_tool_version cargo sqlx-cli)" --no-default-features --features native-tls,postgres
+  cargo install --locked cargo-nextest --version "$(locked_tool_version cargo cargo-nextest)"
+  cargo install --locked cargo-watch --version "$(locked_tool_version cargo cargo-watch)"
 
   for cmd in sqlx cargo-nextest cargo-watch; do
     if [[ -x "${HOME_DIR}/.cargo/bin/${cmd}" ]]; then
@@ -584,7 +631,7 @@ install_yaml_and_git_helpers() {
     yq --version || true
   else
     log "Installing yq"
-    go install github.com/mikefarah/yq/v4@latest
+    go install "github.com/mikefarah/yq/v4@$(locked_tool_version go github.com/mikefarah/yq/v4)"
     if [[ -x "${HOME_DIR}/go/bin/yq" ]]; then
       $SUDO ln -sf "${HOME_DIR}/go/bin/yq" /usr/local/bin/yq
     fi
@@ -595,7 +642,7 @@ install_yaml_and_git_helpers() {
     delta --version || true
   else
     log "Installing delta"
-    cargo install --locked git-delta
+    cargo install --locked git-delta --version "$(locked_tool_version cargo git-delta)"
     if [[ -x "${HOME_DIR}/.cargo/bin/delta" ]]; then
       $SUDO ln -sf "${HOME_DIR}/.cargo/bin/delta" /usr/local/bin/delta
     fi
@@ -605,27 +652,27 @@ install_yaml_and_git_helpers() {
 install_node_globals() {
   log "Installing npm global agent and Workspace CLIs"
   $SUDO npm install -g \
-    @openai/codex \
-    @anthropic-ai/claude-code \
-    @google/gemini-cli \
-    @github/copilot \
-    @google/clasp \
-    @googleworkspace/cli \
-    neonctl \
-    @modelcontextprotocol/inspector \
-    playwright \
-    opencode-ai \
-    openclaw@latest \
-    codeagents
+    "@openai/codex@$(locked_tool_version npm @openai/codex)" \
+    "@anthropic-ai/claude-code@$(locked_tool_version npm @anthropic-ai/claude-code)" \
+    "@google/gemini-cli@$(locked_tool_version npm @google/gemini-cli)" \
+    "@github/copilot@$(locked_tool_version npm @github/copilot)" \
+    "@google/clasp@$(locked_tool_version npm @google/clasp)" \
+    "@googleworkspace/cli@$(locked_tool_version npm @googleworkspace/cli)" \
+    "neonctl@$(locked_tool_version npm neonctl)" \
+    "@modelcontextprotocol/inspector@$(locked_tool_version npm @modelcontextprotocol/inspector)" \
+    "playwright@$(locked_tool_version npm playwright)" \
+    "opencode-ai@$(locked_tool_version npm opencode-ai)" \
+    "openclaw@$(locked_tool_version npm openclaw)" \
+    "codeagents@$(locked_tool_version npm codeagents)"
 }
 
 install_python_agent_tools() {
   log "Installing Python agent helper tools"
-  python3 -m pip install --user --break-system-packages --upgrade codeagents
+  python3 -m pip install --user --break-system-packages --upgrade "codeagents==$(locked_tool_version pip codeagents)"
   export PATH="${HOME_DIR}/.local/bin:${PATH}"
-  uv tool install --force --python python3.12 --with pip aider-chat@latest
-  uv tool install --force llm
-  uv tool install --force openhands --python 3.12
+  uv tool install --force --python python3.12 --with pip "aider-chat==$(locked_tool_version uv aider-chat)"
+  uv tool install --force "llm==$(locked_tool_version uv llm)"
+  uv tool install --force "openhands==$(locked_tool_version uv openhands)" --python 3.12
 }
 
 install_agent_clis() {
@@ -651,7 +698,7 @@ install_cloud_provider_helpers() {
     hcloud version || true
   else
     log "Installing Hetzner hcloud CLI"
-    go install github.com/hetznercloud/cli/cmd/hcloud@latest
+    go install "github.com/hetznercloud/cli/cmd/hcloud@$(locked_tool_version go github.com/hetznercloud/cli/cmd/hcloud)"
     if [[ -x "${HOME_DIR}/go/bin/hcloud" ]]; then
       $SUDO ln -sf "${HOME_DIR}/go/bin/hcloud" /usr/local/bin/hcloud
     fi
@@ -671,7 +718,7 @@ install_terminal_workspace_helpers() {
   fi
 
   log "Installing Zellij"
-  cargo install --locked zellij
+  cargo install --locked zellij --version "$(locked_tool_version cargo zellij)"
   if [[ -x "${HOME_DIR}/.cargo/bin/zellij" ]]; then
     $SUDO ln -sf "${HOME_DIR}/.cargo/bin/zellij" /usr/local/bin/zellij
   fi
@@ -690,14 +737,16 @@ install_factory_helpers() {
     $SUDO apt-get install -y "$pkg" || log "Could not install optional apt package: $pkg"
   done
 
-  $SUDO npm install -g @go-task/cli snyk
+  $SUDO npm install -g \
+    "@go-task/cli@$(locked_tool_version npm @go-task/cli)" \
+    "snyk@$(locked_tool_version npm snyk)"
 
-  uv tool install --force semgrep
-  uv tool install --force dvc
-  uv tool install --force deepagents-cli
+  uv tool install --force "semgrep==$(locked_tool_version uv semgrep)"
+  uv tool install --force "dvc==$(locked_tool_version uv dvc)"
+  uv tool install --force "deepagents-cli==$(locked_tool_version uv deepagents-cli)"
 
-  cargo install --locked just
-  go install github.com/zricethezav/gitleaks/v8@latest
+  cargo install --locked just --version "$(locked_tool_version cargo just)"
+  go install "github.com/zricethezav/gitleaks/v8@$(locked_tool_version go github.com/zricethezav/gitleaks/v8)"
 
   if [[ -x "${HOME_DIR}/.cargo/bin/just" ]]; then
     $SUDO ln -sf "${HOME_DIR}/.cargo/bin/just" /usr/local/bin/just
@@ -731,7 +780,7 @@ install_supply_chain_helpers() {
   fi
 
   if ! have cosign; then
-    go install github.com/sigstore/cosign/v3/cmd/cosign@latest
+    go install "github.com/sigstore/cosign/v3/cmd/cosign@$(locked_tool_version go github.com/sigstore/cosign/v3/cmd/cosign)"
     if [[ -x "${HOME_DIR}/go/bin/cosign" ]]; then
       $SUDO ln -sf "${HOME_DIR}/go/bin/cosign" /usr/local/bin/cosign
     fi
@@ -754,7 +803,7 @@ install_supply_chain_helpers() {
         ;;
     esac
     tmpdir="$(mktemp -d)"
-    curl -fsSLo "${tmpdir}/hadolint" "https://github.com/hadolint/hadolint/releases/latest/download/${hadolint_asset}"
+    curl -fsSLo "${tmpdir}/hadolint" "https://github.com/hadolint/hadolint/releases/download/$(locked_tool_version github_releases hadolint/hadolint)/${hadolint_asset}"
     chmod +x "${tmpdir}/hadolint"
     $SUDO mv "${tmpdir}/hadolint" /usr/local/bin/hadolint
     rm -rf "$tmpdir"

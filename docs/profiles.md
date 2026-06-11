@@ -26,6 +26,7 @@ Inspect a plan before install:
 ```bash
 ./install-agentic-tools.sh --profile coding-agent --plan
 ./install-agentic-tools.sh --profile coding-agent --json-plan | jq .
+cargo run -- plan --profile coding-agent --json | jq .
 ```
 
 ## Available Profiles
