@@ -51,7 +51,7 @@
             shfmt -i 2 -ci -d install-agentic-tools.sh scripts/*.sh cloud/*.sh
             actionlint
             yamllint .
-            ./scripts/verify-lockfile.sh
+            bash scripts/verify-lockfile.sh
           '';
 
           checkScript = pkgs.writeShellApplication {
