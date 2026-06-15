@@ -52,6 +52,30 @@ jobs:
       - name: Lockfile validation
         run: cargo run -- verify-lockfile
 
+  nix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Nix
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nix-bin nix-setup-systemd
+          mkdir -p "$HOME/.config/nix"
+          echo "experimental-features = nix-command flakes" >> "$HOME/.config/nix/nix.conf"
+          nix --version
+      - name: Build package
+        run: nix build
+      - name: Run validation app
+        run: nix run .#check
+      - name: Run Nix e2e smoke
+        run: nix run .#e2e
+      - name: Check flake outputs
+        run: nix flake check --no-build
+      - name: Realize named dev shells
+        run: |
+          nix develop .#minimal --command true
+          nix develop .#coding-agent --command true
+
   docker-smoke:
     runs-on: ubuntu-latest
     strategy:

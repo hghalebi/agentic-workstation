@@ -38,6 +38,22 @@ lint:
 rust-test:
     cargo test --all-targets --all-features
 
+check:
+    just lint
+    just rust-test
+    ./scripts/verify-lockfile.sh
+    bats tests/unit
+
+nix-check:
+    nix --extra-experimental-features 'nix-command flakes' run .#check
+    nix --extra-experimental-features 'nix-command flakes' flake check
+
+nix-e2e:
+    nix --extra-experimental-features 'nix-command flakes' run .#e2e
+
+nix-shell profile="coding-agent":
+    nix --extra-experimental-features 'nix-command flakes' develop .#{{profile}}
+
 audit:
     ./scripts/verify-lockfile.sh
     ./scripts/audit-remote-installers.sh

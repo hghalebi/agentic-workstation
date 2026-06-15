@@ -127,7 +127,9 @@ ensure_base_tools() {
 
   have git || packages+=(git)
   have curl || packages+=(curl)
-  apt_package_installed ca-certificates || packages+=(ca-certificates)
+  if have apt-get && ! apt_package_installed ca-certificates; then
+    packages+=(ca-certificates)
+  fi
 
   ensure_apt_packages "${packages[@]}"
 }
@@ -178,7 +180,7 @@ fetch_repo() {
   if [[ "$REF" != "main" ]]; then
     log "Checking out ${REF}"
     git -C "$TARGET_DIR" fetch origin "$REF"
-    git -C "$TARGET_DIR" checkout FETCH_HEAD
+    git -C "$TARGET_DIR" -c advice.detachedHead=false checkout FETCH_HEAD
   fi
 }
 

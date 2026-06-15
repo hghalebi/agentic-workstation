@@ -27,6 +27,7 @@ The Nix flake builds that CLI and runs the static validation graph:
 ```bash
 nix develop
 nix run .#check
+nix run .#e2e
 nix flake check
 ```
 
@@ -76,6 +77,7 @@ Build and validate the repository CLI with Nix:
 ```bash
 nix --extra-experimental-features 'nix-command flakes' build
 nix --extra-experimental-features 'nix-command flakes' run .#check
+nix --extra-experimental-features 'nix-command flakes' run .#e2e
 ```
 
 ## Install
@@ -152,7 +154,12 @@ Open a development shell with the project check and Rust tools:
 
 ```bash
 nix --extra-experimental-features 'nix-command flakes' develop
+nix --extra-experimental-features 'nix-command flakes' develop .#minimal
+nix --extra-experimental-features 'nix-command flakes' develop .#factory
+nix --extra-experimental-features 'nix-command flakes' develop .#security
 ```
+
+The flake exposes `.#plan`, `.#doctor`, `.#bootstrap-nix`, `.#check`, `.#e2e`, and `.#docker-smoke` apps. See [docs/nix.md](docs/nix.md) for the full Nix workflow.
 
 Nix currently builds and validates the repository CLI and check tooling. The full workstation bootstrap still uses `./install-agentic-tools.sh` because it installs and configures system tools, shell settings, auth CLIs, manifests, and optional workspace hydration.
 
@@ -434,12 +441,15 @@ cargo fmt --check
 cargo clippy --all-targets --all-features -- -D warnings
 cargo test --all-targets --all-features
 cargo run -- verify-lockfile
+nix --extra-experimental-features 'nix-command flakes' run .#check
+nix --extra-experimental-features 'nix-command flakes' run .#e2e
 pre-commit run --all-files
 ```
 
 ## Docs
 
 - [commands.md](commands.md): install commands and source links.
+- [docs/nix.md](docs/nix.md): Nix bootstrap, apps, shells, and e2e workflow.
 - [docs/profiles.md](docs/profiles.md): profile behavior.
 - [docs/auth.md](docs/auth.md): auth commands and status checks.
 - [docs/vm-lifecycle.md](docs/vm-lifecycle.md): snapshots, cloud-init, and workspace hydration.

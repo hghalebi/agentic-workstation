@@ -48,4 +48,6 @@ Ubuntu base VM
 
 ## Nix Boundary
 
-The flake builds the Rust CLI and validation tools. It does not replace the full Ubuntu bootstrap because the installer mutates system package state, shell config, service files, and optional workspace hydration.
+The flake builds the Rust CLI, validation tools, named development shells, and Nix workflow apps. It also exposes an e2e smoke app that runs the Nix bootstrapper against a temporary clone and verifies the generated CLI.
+
+Nix remains a reproducible developer and validation path, not a full replacement for the Ubuntu bootstrap. The full workstation installer still owns privileged system mutation such as apt packages, shell configuration, service files, manifests, and optional workspace hydration.

@@ -14,7 +14,7 @@ This page tracks the reliability targets for the installer, planner, and image w
 | Manifest schema coverage | 100% of installed modules | Initial manifest present |
 | Doctor JSON support | Yes | Implemented |
 | Typed read-only planner | Yes | Rust CLI matches Bash `--json-plan` for checked-in profiles |
-| Nix package build | Yes | `flake.nix` builds the Rust CLI and exposes `.#check` |
+| Nix package build | Yes | `nix build`, `.#check`, named dev shells, and `.#e2e` are covered by CI |
 | Packer image verification | Yes | Planned |
 | OpenSSF Scorecard | Published | Workflow added |
 | First tagged release | `v0.1.0` | Released |

@@ -20,7 +20,9 @@ gitleaks detect --source . --no-git --redact --verbose
 ```bash
 nix --extra-experimental-features 'nix-command flakes' build
 nix --extra-experimental-features 'nix-command flakes' run .#check
+nix --extra-experimental-features 'nix-command flakes' run .#e2e
 nix --extra-experimental-features 'nix-command flakes' flake check --no-build
+nix --extra-experimental-features 'nix-command flakes' develop .#coding-agent --command true
 ```
 
 ## 3. Inspect Plans

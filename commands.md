@@ -60,6 +60,9 @@ Use the flake to build the repository CLI:
 ```bash
 nix --extra-experimental-features 'nix-command flakes' build
 ./result/bin/agentic-workstation --help
+nix --extra-experimental-features 'nix-command flakes' run .#check
+nix --extra-experimental-features 'nix-command flakes' run .#e2e
+nix --extra-experimental-features 'nix-command flakes' develop .#coding-agent
 ```
 
 ## Rust
