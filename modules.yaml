@@ -47,11 +47,12 @@ modules:
       - docker
 
   runtimes:
-    description: Rust and uv runtime tooling
-    requires_sudo: false
+    description: Rust, uv, and Nix runtime tooling
+    requires_sudo: true
     requires_network: true
     idempotent_marker: runtimes
     package_sources:
+      - apt
       - rustup
       - remote-installer
     verify:
@@ -59,6 +60,7 @@ modules:
       - cargo
       - uv
       - uvx
+      - nix
 
   rust-server-tools:
     description: Rust server development tools
