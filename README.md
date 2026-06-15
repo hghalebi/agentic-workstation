@@ -159,7 +159,7 @@ nix --extra-experimental-features 'nix-command flakes' develop .#factory
 nix --extra-experimental-features 'nix-command flakes' develop .#security
 ```
 
-The flake exposes `.#plan`, `.#doctor`, `.#bootstrap-nix`, `.#check`, `.#e2e`, and `.#docker-smoke` apps. See [docs/nix.md](docs/nix.md) for the full Nix workflow.
+The flake exposes `.#plan`, `.#doctor`, `.#bootstrap-nix`, `.#check`, `.#e2e`, and `.#docker-smoke` apps. See [docs/nix.md](docs/nix.md) for how Nix changes terminal usage, reproducible development, package availability, and OpenClaw workflows.
 
 Nix currently builds and validates the repository CLI and check tooling. The full workstation bootstrap still uses `./install-agentic-tools.sh` because it installs and configures system tools, shell settings, auth CLIs, manifests, and optional workspace hydration.
 
@@ -460,7 +460,7 @@ pre-commit run --all-files
 - [docs/remote-installers.md](docs/remote-installers.md): remote installer audit policy.
 - [docs/status.md](docs/status.md): project health targets.
 - [docs/agent-runner.md](docs/agent-runner.md): optional headless runner service.
-- [docs/release.md](docs/release.md): release checklist.
+- [docs/release.md](docs/release.md): Release Please pipeline and release checklist.
 - [ROADMAP.md](ROADMAP.md): planned opt-in configuration.
 - [CONTRIBUTING.md](CONTRIBUTING.md): contribution workflow.
 - [SECURITY.md](SECURITY.md): vulnerability reporting.

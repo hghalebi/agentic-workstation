@@ -24,7 +24,7 @@ state/
 # Build artifacts
 dist/
 build/
-result
+result*
 target/
 node_modules/
 __pycache__/

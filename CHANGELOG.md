@@ -5,6 +5,7 @@
 - Refreshed documentation structure for clearer install, Nix, validation, and operations workflows.
 - Added a one-command Nix bootstrap script that installs Nix when needed, clones the repo, builds the CLI, runs checks, and realizes the development shell packages.
 - Promoted Nix to a first-class developer path with split flake modules, named shells, workflow apps, CI coverage, and an e2e bootstrap smoke test.
+- Added a Release Please pipeline for automated release PRs, changelog updates, version bumps, tags, and GitHub releases.
 
 ## v0.1.1 - 2026-06-12
 
