@@ -7,6 +7,14 @@
 - Promoted Nix to a first-class developer path with split flake modules, named shells, workflow apps, CI coverage, and an e2e bootstrap smoke test.
 - Added a Release Please pipeline for automated release PRs, changelog updates, version bumps, tags, and GitHub releases.
 
+## [0.2.0](https://github.com/hghalebi/agentic-workstation/compare/v0.1.1...v0.2.0) (2026-06-15)
+
+
+### Features
+
+* add release-please pipeline ([0992dfe](https://github.com/hghalebi/agentic-workstation/commit/0992dfe249aee70106c2edfd12503758708a186d))
+* add release-please pipeline ([838afe9](https://github.com/hghalebi/agentic-workstation/commit/838afe9bfcde3546d689143700020b31162bd297))
+
 ## v0.1.1 - 2026-06-12
 
 - Added a typed Rust CLI for read-only install planning and lockfile validation.
