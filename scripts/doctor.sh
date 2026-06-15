@@ -163,7 +163,7 @@ need_group "${INSTALL_BASE:-0}" git gh curl jq rg fd fzf tmux python3 node npm g
 need_group "${INSTALL_SERVER_BASE:-0}" ufw fail2ban-client nginx
 need_group "${INSTALL_DOCKER:-0}" docker
 [[ "${INSTALL_DOCKER:-0}" == "1" ]] && need_docker_compose
-need_group "${INSTALL_RUNTIMES:-0}" uv rustc cargo
+need_group "${INSTALL_RUNTIMES:-0}" uv rustc cargo nix
 need_group "${INSTALL_RUST_SERVER_TOOLS:-0}" sqlx cargo-nextest cargo-watch
 need_group "${INSTALL_VERSION_MANAGERS:-0}" mise aqua
 need_group "${INSTALL_GIT_HELPERS:-0}" yq delta

@@ -52,7 +52,7 @@ The installer currently exposes these module names:
 | `base` | apt packages and core shell/debug tools. |
 | `server-base` | `ufw`, `fail2ban`, `nginx`, `unattended-upgrades`, and journald limits. |
 | `docker` | Docker Engine via Docker's official Ubuntu apt repository. |
-| `runtimes` | Rust and uv. |
+| `runtimes` | Rust, uv, and Nix. |
 | `rust-server-tools` | `sqlx-cli`, `cargo-nextest`, and `cargo-watch`. |
 | `version-managers` | mise and aqua. |
 | `git-helpers` | yq and delta. |

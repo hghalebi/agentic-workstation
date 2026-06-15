@@ -94,7 +94,7 @@ impl Module {
                 "Server firewall, web, updates, intrusion prevention, and journal limits"
             }
             Self::Docker => "Docker Engine from the official Docker apt repository",
-            Self::Runtimes => "Rust and uv runtime tooling",
+            Self::Runtimes => "Rust, uv, and Nix runtime tooling",
             Self::RustServerTools => "Rust server development tools",
             Self::VersionManagers => "mise and aqua tool version managers",
             Self::GitHelpers => "YAML and Git diff helpers",
@@ -119,10 +119,11 @@ impl Module {
 
     pub fn requires_sudo(self) -> ModulePrivilege {
         match self {
-            Self::Runtimes | Self::RustServerTools => ModulePrivilege::User,
+            Self::RustServerTools => ModulePrivilege::User,
             Self::Base
             | Self::ServerBase
             | Self::Docker
+            | Self::Runtimes
             | Self::VersionManagers
             | Self::GitHelpers
             | Self::Agents

@@ -233,7 +233,7 @@ module_description() {
     base) printf 'Core Ubuntu CLI and debugging tools' ;;
     server-base) printf 'Server firewall, web, updates, intrusion prevention, and journal limits' ;;
     docker) printf 'Docker Engine from the official Docker apt repository' ;;
-    runtimes) printf 'Rust and uv runtime tooling' ;;
+    runtimes) printf 'Rust, uv, and Nix runtime tooling' ;;
     rust-server-tools) printf 'Rust server development tools' ;;
     version-managers) printf 'mise and aqua tool version managers' ;;
     git-helpers) printf 'YAML and Git diff helpers' ;;
@@ -260,7 +260,7 @@ module_description() {
 module_requires_sudo() {
   case "$1" in
     base | server-base | docker | version-managers | git-helpers | agents | browser | cloud | terminal | factory | onepassword | harness | openclaw-layout | opentelemetry | neon | hetzner-s3 | onepassword-ssh | dotfiles | workspace | config | manifest) return 0 ;;
-    runtimes | rust-server-tools) return 1 ;;
+    rust-server-tools) return 1 ;;
     *) return 1 ;;
   esac
 }
@@ -555,9 +555,22 @@ install_uv() {
   export PATH="${HOME_DIR}/.local/bin:${PATH}"
 }
 
+install_nix() {
+  if have nix; then
+    log "Nix already installed"
+    nix --version || true
+    return
+  fi
+
+  log "Installing Nix from apt"
+  $SUDO apt-get update -y
+  $SUDO apt-get install -y nix-bin nix-setup-systemd
+}
+
 install_runtimes() {
   install_rust
   install_uv
+  install_nix
 }
 
 install_rust_server_tools() {
@@ -641,38 +654,52 @@ install_yaml_and_git_helpers() {
     log "delta already installed"
     delta --version || true
   else
-    log "Installing delta"
-    cargo install --locked git-delta --version "$(locked_tool_version cargo git-delta)"
-    if [[ -x "${HOME_DIR}/.cargo/bin/delta" ]]; then
-      $SUDO ln -sf "${HOME_DIR}/.cargo/bin/delta" /usr/local/bin/delta
+    if apt-cache show git-delta >/dev/null 2>&1; then
+      log "Installing delta from apt"
+      $SUDO apt-get install -y git-delta
+    else
+      log "Installing delta from Cargo"
+      cargo install --locked git-delta --version "$(locked_tool_version cargo git-delta)"
+      if [[ -x "${HOME_DIR}/.cargo/bin/delta" ]]; then
+        $SUDO ln -sf "${HOME_DIR}/.cargo/bin/delta" /usr/local/bin/delta
+      fi
     fi
   fi
 }
 
 install_node_globals() {
-  log "Installing npm global agent and Workspace CLIs"
-  $SUDO npm install -g \
-    "@openai/codex@$(locked_tool_version npm @openai/codex)" \
-    "@anthropic-ai/claude-code@$(locked_tool_version npm @anthropic-ai/claude-code)" \
-    "@google/gemini-cli@$(locked_tool_version npm @google/gemini-cli)" \
-    "@github/copilot@$(locked_tool_version npm @github/copilot)" \
-    "@google/clasp@$(locked_tool_version npm @google/clasp)" \
-    "@googleworkspace/cli@$(locked_tool_version npm @googleworkspace/cli)" \
-    "neonctl@$(locked_tool_version npm neonctl)" \
-    "@modelcontextprotocol/inspector@$(locked_tool_version npm @modelcontextprotocol/inspector)" \
-    "playwright@$(locked_tool_version npm playwright)" \
-    "opencode-ai@$(locked_tool_version npm opencode-ai)" \
-    "openclaw@$(locked_tool_version npm openclaw)" \
+  local packages=(
+    "@openai/codex@$(locked_tool_version npm @openai/codex)"
+    "@anthropic-ai/claude-code@$(locked_tool_version npm @anthropic-ai/claude-code)"
+    "@google/gemini-cli@$(locked_tool_version npm @google/gemini-cli)"
+    "@github/copilot@$(locked_tool_version npm @github/copilot)"
+    "@google/clasp@$(locked_tool_version npm @google/clasp)"
+    "@googleworkspace/cli@$(locked_tool_version npm @googleworkspace/cli)"
+    "neonctl@$(locked_tool_version npm neonctl)"
+    "@modelcontextprotocol/inspector@$(locked_tool_version npm @modelcontextprotocol/inspector)"
+    "playwright@$(locked_tool_version npm playwright)"
+    "opencode-ai@$(locked_tool_version npm opencode-ai)"
+    "openclaw@$(locked_tool_version npm openclaw)"
     "codeagents@$(locked_tool_version npm codeagents)"
+  )
+  local package
+
+  log "Installing npm global agent and Workspace CLIs"
+  for package in "${packages[@]}"; do
+    log "Installing ${package}"
+    $SUDO npm install -g --force "$package"
+  done
 }
 
 install_python_agent_tools() {
+  local uv_python="${PYTHON_FOR_UV_TOOLS:-3.12}"
+
   log "Installing Python agent helper tools"
   python3 -m pip install --user --break-system-packages --upgrade "codeagents==$(locked_tool_version pip codeagents)"
   export PATH="${HOME_DIR}/.local/bin:${PATH}"
-  uv tool install --force --python python3.12 --with pip "aider-chat==$(locked_tool_version uv aider-chat)"
+  uv tool install --force --python "$uv_python" --with pip "aider-chat==$(locked_tool_version uv aider-chat)"
   uv tool install --force "llm==$(locked_tool_version uv llm)"
-  uv tool install --force "openhands==$(locked_tool_version uv openhands)" --python 3.12
+  uv tool install --force "openhands==$(locked_tool_version uv openhands)" --python "$uv_python"
 }
 
 install_agent_clis() {
@@ -711,16 +738,31 @@ install_cloud_clis() {
 }
 
 install_terminal_workspace_helpers() {
+  local zellij_version
+  local zellij_url
+  local tmpdir
+
   if have zellij; then
     log "Zellij already installed"
     zellij --version || true
     return
   fi
 
-  log "Installing Zellij"
-  cargo install --locked zellij --version "$(locked_tool_version cargo zellij)"
-  if [[ -x "${HOME_DIR}/.cargo/bin/zellij" ]]; then
-    $SUDO ln -sf "${HOME_DIR}/.cargo/bin/zellij" /usr/local/bin/zellij
+  zellij_version="$(locked_tool_version cargo zellij)"
+  if [[ "$(uname -s)" == "Linux" && "$(uname -m)" == "x86_64" ]]; then
+    log "Installing Zellij from pinned GitHub release"
+    zellij_url="https://github.com/zellij-org/zellij/releases/download/v${zellij_version}/zellij-x86_64-unknown-linux-musl.tar.gz"
+    tmpdir="$(mktemp -d)"
+    curl -fsSL "$zellij_url" -o "${tmpdir}/zellij.tar.gz"
+    tar -xzf "${tmpdir}/zellij.tar.gz" -C "$tmpdir" zellij
+    $SUDO install -m 0755 "${tmpdir}/zellij" /usr/local/bin/zellij
+    rm -rf "$tmpdir"
+  else
+    log "Installing Zellij from Cargo"
+    CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}" cargo install --locked zellij --version "$zellij_version"
+    if [[ -x "${HOME_DIR}/.cargo/bin/zellij" ]]; then
+      $SUDO ln -sf "${HOME_DIR}/.cargo/bin/zellij" /usr/local/bin/zellij
+    fi
   fi
 }
 
@@ -1252,8 +1294,8 @@ verify_tool_group() {
 verify_tools() {
   verify_tool_group "Default tool checks" \
     git gh curl wget jq yq rg fd fzf tmux zellij direnv make gcc shellcheck shfmt bats sqlite3 psql redis-cli dig nc lsof strace ltrace git-lfs age tree rsync zip ncdu duf hyperfine pre-commit delta \
-    python3 pipx node npm npx go rustc cargo uv uvx mise aqua \
-    codex claude gemini copilot op gcloud hcloud neonctl clasp gws opencode openclaw aider llm openhands codeagents hc
+    python3 pipx node npm npx go rustc cargo uv uvx nix mise aqua \
+    codex claude gemini copilot op gcloud hcloud neonctl clasp gws opencode openclaw aider llm openhands hc
 
   if [[ "${INSTALL_SERVER_BASE:-0}" == "1" ]]; then
     verify_tool_group "Server base checks" ufw fail2ban-client nginx
