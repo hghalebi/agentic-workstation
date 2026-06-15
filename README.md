@@ -27,7 +27,15 @@ The Nix flake builds that CLI and runs the static validation graph:
 ```bash
 nix develop
 nix run .#check
+nix run .#e2e
 nix flake check
+```
+
+If flakes are not enabled globally, pass the feature flags explicitly:
+
+```bash
+nix --extra-experimental-features 'nix-command flakes' build
+nix --extra-experimental-features 'nix-command flakes' run .#check
 ```
 
 ## Who This Is For
@@ -52,6 +60,25 @@ nix flake check
 - For first bootstrap, either `git` or `curl`/`wget` plus `tar`.
 
 Other Linux distributions may work, but Ubuntu is the supported target.
+
+## Quick Start
+
+Clone the repository, run the default profile, and verify the machine:
+
+```bash
+git clone https://github.com/hghalebi/agentic-workstation.git
+cd agentic-workstation
+./install-agentic-tools.sh
+./scripts/doctor.sh --profile coding-agent
+```
+
+Build and validate the repository CLI with Nix:
+
+```bash
+nix --extra-experimental-features 'nix-command flakes' build
+nix --extra-experimental-features 'nix-command flakes' run .#check
+nix --extra-experimental-features 'nix-command flakes' run .#e2e
+```
 
 ## Install
 
@@ -93,6 +120,48 @@ From a non-root shell:
 ```bash
 sudo ./install-agentic-tools.sh
 ```
+
+## Nix Usage
+
+Use Nix when you want a reproducible build or validation environment for the repository itself:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/hghalebi/agentic-workstation/main/scripts/bootstrap-nix.sh | bash
+```
+
+The Nix bootstrapper installs Nix with apt when it is missing, clones the repo into `$HOME/agentic-workstation`, builds the CLI, runs `nix run .#check`, and realizes the development shell packages with `nix develop --command true`.
+
+```bash
+nix --extra-experimental-features 'nix-command flakes' build
+./result/bin/agentic-workstation --help
+```
+
+Run the Rust CLI through the flake without creating `./result`:
+
+```bash
+nix --extra-experimental-features 'nix-command flakes' run . -- plan --profile coding-agent
+nix --extra-experimental-features 'nix-command flakes' run . -- verify-lockfile
+```
+
+Run the static validation bundle:
+
+```bash
+nix --extra-experimental-features 'nix-command flakes' run .#check
+nix --extra-experimental-features 'nix-command flakes' flake check
+```
+
+Open a development shell with the project check and Rust tools:
+
+```bash
+nix --extra-experimental-features 'nix-command flakes' develop
+nix --extra-experimental-features 'nix-command flakes' develop .#minimal
+nix --extra-experimental-features 'nix-command flakes' develop .#factory
+nix --extra-experimental-features 'nix-command flakes' develop .#security
+```
+
+The flake exposes `.#plan`, `.#doctor`, `.#bootstrap-nix`, `.#check`, `.#e2e`, and `.#docker-smoke` apps. See [docs/nix.md](docs/nix.md) for the full Nix workflow.
+
+Nix currently builds and validates the repository CLI and check tooling. The full workstation bootstrap still uses `./install-agentic-tools.sh` because it installs and configures system tools, shell settings, auth CLIs, manifests, and optional workspace hydration.
 
 ## Options
 
@@ -204,14 +273,14 @@ Default layer:
 | Area | Tools |
 | --- | --- |
 | Core shell | `git`, `gh`, `curl`, `wget`, `jq`, `rg`, `fd`, `fzf`, `tmux`, `zellij`, `direnv`, `make`, `unzip`, `zip` |
-| Build/runtime | compilers, `python3`, `pipx`, `node`, `npm`, `npx`, `go`, `rustup`, `rustc`, `cargo`, `uv`, `uvx` |
+| Build/runtime | compilers, `python3`, `pipx`, `node`, `npm`, `npx`, `go`, `rustup`, `rustc`, `cargo`, `uv`, `uvx`, `nix` |
 | Code quality | `shellcheck`, `shfmt`, `bats`, `pre-commit` |
 | Data and services | `sqlite3`, `psql`, `redis-cli`, `dig`, `nc` |
 | Debugging | `lsof`, `strace`, `ltrace`, `hyperfine`, `ncdu`, `duf` |
 | Version managers | `mise`, `aqua` |
 | Git/YAML | `delta`, `yq`, `git-lfs` |
 | Secret management | `op` from 1Password CLI |
-| Agent/model CLIs | `codex`, `claude`, `gemini`, `copilot`, `opencode`, `openclaw`, `openhands`, `aider`, `llm`, `codeagents` |
+| Agent/model CLIs | `codex`, `claude`, `gemini`, `copilot`, `opencode`, `openclaw`, `openhands`, `aider`, `llm` |
 | Cloud/database | `gcloud`, `hcloud`, `neonctl`, `clasp`, `gws`, `hc` |
 | Browser/MCP | `playwright`, `@modelcontextprotocol/inspector` |
 
@@ -372,12 +441,15 @@ cargo fmt --check
 cargo clippy --all-targets --all-features -- -D warnings
 cargo test --all-targets --all-features
 cargo run -- verify-lockfile
+nix --extra-experimental-features 'nix-command flakes' run .#check
+nix --extra-experimental-features 'nix-command flakes' run .#e2e
 pre-commit run --all-files
 ```
 
 ## Docs
 
 - [commands.md](commands.md): install commands and source links.
+- [docs/nix.md](docs/nix.md): Nix bootstrap, apps, shells, and e2e workflow.
 - [docs/profiles.md](docs/profiles.md): profile behavior.
 - [docs/auth.md](docs/auth.md): auth commands and status checks.
 - [docs/vm-lifecycle.md](docs/vm-lifecycle.md): snapshots, cloud-init, and workspace hydration.

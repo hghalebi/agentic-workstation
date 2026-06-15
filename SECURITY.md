@@ -2,7 +2,7 @@
 
 Report security issues privately.
 
-Do not open a public issue for:
+## Do Not Open Public Issues For
 
 - Secrets or credential exposure.
 - Command injection.
@@ -12,7 +12,7 @@ Do not open a public issue for:
 
 Until a dedicated security contact exists, report privately to the repository maintainer.
 
-Include:
+## Include
 
 - Affected file and command.
 - Impact.
@@ -54,3 +54,10 @@ cargo run -- verify-lockfile
 Every remote installer should be documented in `agentic-tools.lock.yaml` or removed. Prefer pinned package versions and reproducible image refs over moving `main` branches or `latest` package targets.
 
 The typed Rust validator owns read-only lockfile policy. Installer package commands should consume `agentic-tools.lock.yaml` pins rather than duplicating versions in shell code.
+
+## Maintainer Checklist
+
+- Reproduce the report in a disposable VM when possible.
+- Check whether the issue affects a default profile.
+- Check whether credentials, tokens, or rendered cloud-init files could be exposed.
+- Patch docs and lockfile policy when the fix changes installation behavior.

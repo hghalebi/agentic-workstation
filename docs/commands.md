@@ -79,3 +79,24 @@ gitleaks detect --source . --no-git --redact --verbose
 ./scripts/verify-lockfile.sh
 ./scripts/audit-remote-installers.sh
 ```
+
+## Nix
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/hghalebi/agentic-workstation/main/scripts/bootstrap-nix.sh | bash
+nix --extra-experimental-features 'nix-command flakes' build
+./result/bin/agentic-workstation plan --profile coding-agent
+./result/bin/agentic-workstation verify-lockfile
+nix --extra-experimental-features 'nix-command flakes' run . -- plan --profile coding-agent
+nix --extra-experimental-features 'nix-command flakes' run .#plan -- --profile coding-agent
+nix --extra-experimental-features 'nix-command flakes' run .#doctor -- --profile coding-agent
+nix --extra-experimental-features 'nix-command flakes' run .#check
+nix --extra-experimental-features 'nix-command flakes' run .#e2e
+nix --extra-experimental-features 'nix-command flakes' flake check
+nix --extra-experimental-features 'nix-command flakes' develop
+nix --extra-experimental-features 'nix-command flakes' develop .#minimal
+nix --extra-experimental-features 'nix-command flakes' develop .#factory
+nix --extra-experimental-features 'nix-command flakes' develop .#security
+```
+
+The Nix bootstrapper installs Nix when needed, clones the repo, builds the CLI, runs `.#check`, and realizes the development shell packages. The Nix flake builds the Rust CLI and validation tooling. Use `./install-agentic-tools.sh` for the full Ubuntu workstation install and system configuration.

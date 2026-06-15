@@ -1,8 +1,12 @@
 # Hetzner DX Design
 
-This project should feel like a small Hetzner agent factory: create a machine,
-hydrate a repo, run an agent, collect evidence, and delete the machine without
-remembering provider details.
+This document defines the target operator experience for Hetzner-backed agent VMs.
+
+The goal is a small agent factory: create a machine, hydrate a repo, run an agent, collect evidence, and delete the machine without remembering provider details.
+
+## Status
+
+Some building blocks already exist. The `just` commands in this document are target interfaces unless a backing script is listed and present in the repository.
 
 The current repo already has the right base pieces:
 
@@ -14,6 +18,24 @@ The current repo already has the right base pieces:
 
 The DX goal is to wrap those pieces into clear operator flows, not replace them
 with a large platform too early.
+
+## Current Entry Point
+
+Create a runner VM with the implemented helper:
+
+```bash
+HCLOUD_TOKEN=... ./scripts/agent-vm-new.sh --name repo-fix --profile agent-runner
+```
+
+Render cloud-init directly when you need to inspect user data first:
+
+```bash
+./scripts/render-cloud-init.sh \
+  --user ubuntu \
+  --ssh-key ~/.ssh/id_ed25519.pub \
+  --profile agent-runner \
+  --ref v0.1.1
+```
 
 ## Opinionated Defaults
 
