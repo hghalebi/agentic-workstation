@@ -1,10 +1,16 @@
 # VM Lifecycle
 
-Use layers instead of reinstalling every tool on every VM.
+Use layered images so new VMs do not reinstall every tool from scratch.
+
+## Flow
+
+```text
+base-image profile -> provider snapshot -> profile-specific install -> workspace hydration -> doctor
+```
 
 ## 1. Build a Base Image
 
-Create a clean Ubuntu VM:
+Start from a clean Ubuntu VM and install the reusable base layer:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/hghalebi/agentic-workstation/main/scripts/bootstrap.sh \
@@ -25,7 +31,7 @@ Create a provider snapshot from that VM.
 
 ## 2. Start a New VM
 
-Create new VMs from the snapshot. Run only the profile-specific layer:
+Create new VMs from the snapshot, then run only the profile-specific layer:
 
 ```bash
 ./install-agentic-tools.sh --profile agent-runner --resume
@@ -82,7 +88,7 @@ WORKSPACE_TARGET=/workspace/project \
 
 ## 5. Check Health
 
-After install:
+After installation, run:
 
 ```bash
 ./scripts/doctor.sh --profile coding-agent
@@ -99,7 +105,7 @@ The manifest records the selected profile, install time, host, OS, and important
 
 ## 6. Test Locally
 
-Static Docker smoke test:
+Run the static Docker smoke test:
 
 ```bash
 docker build -f tests/Dockerfile.ubuntu-24.04 .
@@ -110,3 +116,9 @@ Opt-in full install test:
 ```bash
 docker build --build-arg RUN_INSTALL=1 -f tests/Dockerfile.ubuntu-24.04 .
 ```
+
+## Notes
+
+- Prefer tagged refs or commit SHAs for cloud-init.
+- Keep rendered cloud-init files out of Git when they include host-specific data.
+- Run `scripts/prepare-snapshot.sh` before creating reusable images.

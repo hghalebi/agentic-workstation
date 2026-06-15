@@ -2,6 +2,8 @@
 
 Be direct, respectful, and useful.
 
+Use this policy for issues, pull requests, reviews, and project discussions.
+
 ## Expected
 
 - Focus criticism on code, docs, and technical decisions.

@@ -60,6 +60,24 @@ nix --extra-experimental-features 'nix-command flakes' run .#check
 
 Other Linux distributions may work, but Ubuntu is the supported target.
 
+## Quick Start
+
+Clone the repository, run the default profile, and verify the machine:
+
+```bash
+git clone https://github.com/hghalebi/agentic-workstation.git
+cd agentic-workstation
+./install-agentic-tools.sh
+./scripts/doctor.sh --profile coding-agent
+```
+
+Build and validate the repository CLI with Nix:
+
+```bash
+nix --extra-experimental-features 'nix-command flakes' build
+nix --extra-experimental-features 'nix-command flakes' run .#check
+```
+
 ## Install
 
 On a fresh machine without Git installed yet, bootstrap from a GitHub archive:
@@ -242,14 +260,14 @@ Default layer:
 | Area | Tools |
 | --- | --- |
 | Core shell | `git`, `gh`, `curl`, `wget`, `jq`, `rg`, `fd`, `fzf`, `tmux`, `zellij`, `direnv`, `make`, `unzip`, `zip` |
-| Build/runtime | compilers, `python3`, `pipx`, `node`, `npm`, `npx`, `go`, `rustup`, `rustc`, `cargo`, `uv`, `uvx` |
+| Build/runtime | compilers, `python3`, `pipx`, `node`, `npm`, `npx`, `go`, `rustup`, `rustc`, `cargo`, `uv`, `uvx`, `nix` |
 | Code quality | `shellcheck`, `shfmt`, `bats`, `pre-commit` |
 | Data and services | `sqlite3`, `psql`, `redis-cli`, `dig`, `nc` |
 | Debugging | `lsof`, `strace`, `ltrace`, `hyperfine`, `ncdu`, `duf` |
 | Version managers | `mise`, `aqua` |
 | Git/YAML | `delta`, `yq`, `git-lfs` |
 | Secret management | `op` from 1Password CLI |
-| Agent/model CLIs | `codex`, `claude`, `gemini`, `copilot`, `opencode`, `openclaw`, `openhands`, `aider`, `llm`, `codeagents` |
+| Agent/model CLIs | `codex`, `claude`, `gemini`, `copilot`, `opencode`, `openclaw`, `openhands`, `aider`, `llm` |
 | Cloud/database | `gcloud`, `hcloud`, `neonctl`, `clasp`, `gws`, `hc` |
 | Browser/MCP | `playwright`, `@modelcontextprotocol/inspector` |
 

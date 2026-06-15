@@ -40,6 +40,22 @@ apt-get update -y
 apt-get install -y ca-certificates gnupg lsb-release curl wget unzip git gh jq ripgrep fd-find fzf tmux direnv make build-essential pkg-config libssl-dev python3 python3-pip python3-venv pipx nodejs npm golang-go shellcheck sqlite3 postgresql-client redis-tools dnsutils netcat-openbsd git-lfs age tree rsync zip lsof strace ltrace ncdu bats shfmt hyperfine duf pre-commit
 ```
 
+## Nix
+
+The `runtimes` module installs Nix from Ubuntu packages:
+
+```bash
+apt-get update -y
+apt-get install -y nix-bin nix-setup-systemd
+```
+
+Use the flake to build the repository CLI:
+
+```bash
+nix --extra-experimental-features 'nix-command flakes' build
+./result/bin/agentic-workstation --help
+```
+
 ## Rust
 
 ```bash
@@ -137,7 +153,7 @@ Source: https://aquaproj.github.io/docs/products/aqua-installer/
 
 ```bash
 go install github.com/mikefarah/yq/v4@v4.45.4
-cargo install --locked git-delta --version 0.18.2
+apt-get install -y git-delta
 ```
 
 Sources:
@@ -148,8 +164,9 @@ Sources:
 ## Zellij
 
 ```bash
-cargo install --locked zellij --version 0.42.2
-ln -sf "$HOME/.cargo/bin/zellij" /usr/local/bin/zellij
+curl -fsSL https://github.com/zellij-org/zellij/releases/download/v0.42.2/zellij-x86_64-unknown-linux-musl.tar.gz -o zellij.tar.gz
+tar -xzf zellij.tar.gz zellij
+install -m 0755 zellij /usr/local/bin/zellij
 ```
 
 Source: https://zellij.dev/documentation/installation.html
@@ -157,17 +174,17 @@ Source: https://zellij.dev/documentation/installation.html
 ## Agent and Model CLIs
 
 ```bash
-npm install -g @openai/codex@0.18.0
+npm install -g @openai/codex@0.139.0
 npm install -g @anthropic-ai/claude-code@1.0.0
 npm install -g @google/gemini-cli@0.1.12
 npm install -g @github/copilot@0.0.328
 npm install -g opencode-ai@0.5.16
-npm install -g openclaw@0.4.4
-npm install -g codeagents@0.3.4
+npm install -g openclaw@2026.6.6
+npm install -g codeagents@1.0.0
 uv tool install --force llm==0.26
-uv tool install --force openhands==0.39.0 --python 3.12
-uv tool install --force --python python3.12 --with pip aider-chat==0.84.0
-python3 -m pip install --user --break-system-packages --upgrade codeagents==0.3.4
+uv tool install --force openhands==1.2.1 --python 3.12
+uv tool install --force --python 3.12 --with pip aider-chat==0.84.0
+python3 -m pip install --user --break-system-packages --upgrade codeagents==1.0.0
 ```
 
 Sources:
@@ -266,8 +283,8 @@ Sources:
 ## Google Apps Script and Workspace
 
 ```bash
-npm install -g @google/clasp@3.0.6
-npm install -g @googleworkspace/cli@1.5.0
+npm install -g @google/clasp@3.3.0
+npm install -g @googleworkspace/cli@0.22.5
 ```
 
 Sources:

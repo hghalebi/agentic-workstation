@@ -1,6 +1,6 @@
 # Architecture
 
-Agentic Workstation is a layered VM factory.
+Agentic Workstation is a layered Ubuntu workstation factory. Each layer has one job: install tools, hydrate workspaces, verify state, or report readiness.
 
 ```text
 Ubuntu base VM
@@ -12,6 +12,15 @@ Ubuntu base VM
   -> manifest + doctor checks
   -> auth-status inspection
 ```
+
+## Core Flow
+
+1. Select a profile from `profiles/*.env`.
+2. Resolve enabled modules.
+3. Install each module idempotently.
+4. Write `/var/lib/agentic-workstation/manifest.json`.
+5. Run `scripts/doctor.sh`.
+6. Run auth checks manually with `scripts/auth-status.sh`.
 
 ## Layers
 
@@ -36,3 +45,7 @@ Ubuntu base VM
 - Plans should be inspectable before mutation.
 - Manifests should make installed state auditable after mutation.
 - Raw profile, lockfile, and environment input should be converted into typed Rust domain values before read-only policy decisions.
+
+## Nix Boundary
+
+The flake builds the Rust CLI and validation tools. It does not replace the full Ubuntu bootstrap because the installer mutates system package state, shell config, service files, and optional workspace hydration.

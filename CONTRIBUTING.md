@@ -2,9 +2,9 @@
 
 Keep the installer practical, auditable, and safe to rerun.
 
-## Develop
+## Set Up
 
-Run the local checks:
+Clone the repository and run checks before opening a pull request:
 
 ```bash
 bash -n install-agentic-tools.sh
@@ -15,6 +15,12 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test --all-targets --all-features
 cargo run -- verify-lockfile
 pre-commit run --all-files
+```
+
+Use the flake when you want the repository-managed validation environment:
+
+```bash
+nix --extra-experimental-features 'nix-command flakes' run .#check
 ```
 
 For installer changes, test in a disposable Ubuntu VM or container before opening a pull request.
@@ -40,6 +46,6 @@ docker build -f tests/Dockerfile.ubuntu-24.04 .
 Include:
 
 - What changed.
-- Why it belongs in the default layer or factory layer.
+- Why it belongs in the selected profile or module.
 - How you tested it.
 - Known platform limits or follow-up work.

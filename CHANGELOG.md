@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Nothing yet.
+- Refreshed documentation structure for clearer install, Nix, validation, and operations workflows.
 
 ## v0.1.1 - 2026-06-12
 

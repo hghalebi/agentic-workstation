@@ -1,6 +1,8 @@
 # Status
 
-Project health targets:
+This page tracks the reliability targets for the installer, planner, and image workflows.
+
+## Targets
 
 | Metric | Target | Current |
 | --- | --- | --- |
@@ -17,3 +19,9 @@ Project health targets:
 | OpenSSF Scorecard | Published | Workflow added |
 | First tagged release | `v0.1.0` | Released |
 | Latest release | `v0.1.1` | Current |
+
+## Update Rules
+
+- Update this page when a target changes.
+- Keep `Current` factual and testable.
+- Link to the command, workflow, or document that proves the status when the table needs more detail.

@@ -1,46 +1,56 @@
 # Release Checklist
 
-Before tagging a release:
+Use this checklist before tagging a release.
 
-1. Run local validation.
+## 1. Validate Locally
 
-   ```bash
-   cargo fmt --check
-   cargo clippy --all-targets --all-features -- -D warnings
-   cargo test --all-targets --all-features
-   cargo run -- verify-lockfile
-   PRE_COMMIT_HOME=/tmp/pre-commit-cache pre-commit run --all-files
-   gitleaks detect --source . --no-git --redact --verbose
-   ./scripts/verify-lockfile.sh
-   ./scripts/audit-remote-installers.sh
-   ```
+```bash
+cargo fmt --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test --all-targets --all-features
+cargo run -- verify-lockfile
+PRE_COMMIT_HOME=/tmp/pre-commit-cache pre-commit run --all-files
+gitleaks detect --source . --no-git --redact --verbose
+./scripts/verify-lockfile.sh
+./scripts/audit-remote-installers.sh
+```
 
-2. Render and inspect install plans.
+## 2. Validate with Nix
 
-   ```bash
-   ./install-agentic-tools.sh --profile coding-agent --json-plan | jq .
-   ./install-agentic-tools.sh --profile factory --json-plan | jq .
-   ```
+```bash
+nix --extra-experimental-features 'nix-command flakes' build
+nix --extra-experimental-features 'nix-command flakes' run .#check
+nix --extra-experimental-features 'nix-command flakes' flake check --no-build
+```
 
-3. Build Docker smoke tests.
+## 3. Inspect Plans
 
-   ```bash
-   docker build -f tests/Dockerfile.ubuntu-22.04 .
-   docker build -f tests/Dockerfile.ubuntu-24.04 .
-   ```
+```bash
+./install-agentic-tools.sh --profile coding-agent --json-plan | jq .
+./install-agentic-tools.sh --profile factory --json-plan | jq .
+```
 
-4. Confirm GitHub Actions are green.
+## 4. Build Docker Smoke Tests
 
-5. Create an annotated tag.
+```bash
+docker build -f tests/Dockerfile.ubuntu-22.04 .
+docker build -f tests/Dockerfile.ubuntu-24.04 .
+```
 
-   ```bash
-   git tag -a vX.Y.Z -m "vX.Y.Z"
-   git push origin vX.Y.Z
-   ```
+## 5. Tag
 
-6. Publish release notes with:
+Confirm GitHub Actions are green, then create an annotated tag:
 
-   - Supported profiles.
-   - Manifest schema changes.
-   - Known remote installer exceptions.
-   - Checksums or SBOM artifacts when available.
+```bash
+git tag -a vX.Y.Z -m "vX.Y.Z"
+git push origin vX.Y.Z
+```
+
+## 6. Publish Notes
+
+Include:
+
+- Supported profiles.
+- Manifest schema changes.
+- Known remote installer exceptions.
+- Checksums or SBOM artifacts when available.

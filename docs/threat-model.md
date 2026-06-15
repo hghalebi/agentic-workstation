@@ -2,6 +2,10 @@
 
 Agentic Workstation installs privileged developer tooling. The highest-risk areas are supply chain, shell execution, secrets, and cloud bootstrap data.
 
+## Security Posture
+
+The installer should be auditable, rerunnable, and explicit about every privileged action. Authentication remains outside the install flow.
+
 ## Assets
 
 - Host root access.
@@ -28,3 +32,13 @@ Agentic Workstation installs privileged developer tooling. The highest-risk area
 - Managing secrets.
 - Replacing 1Password, cloud IAM, or GitHub auth flows.
 - Hardening Kubernetes or Docker hosts by default.
+
+## Review Checklist
+
+Use this checklist for changes that alter install behavior:
+
+- Does the command run as root or mutate system state?
+- Is every non-apt version pinned?
+- Is every remote installer documented in `agentic-tools.lock.yaml`?
+- Can the action be inspected with `--json-plan` before it runs?
+- Does the change avoid collecting or printing credentials?

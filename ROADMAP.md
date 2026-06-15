@@ -2,6 +2,8 @@
 
 This project installs tools first and configures machines second. Configuration must be explicit, reversible, and safe around existing dotfiles.
 
+Use this page to understand planned work. Use `README.md` and `docs/commands.md` for commands that are available today.
+
 ## Current Factory Features
 
 - Profile installs through `profiles/*.env`.
