@@ -14,6 +14,25 @@ The workflow reads:
 
 Release Please opens or updates a release PR. That PR updates `CHANGELOG.md`, bumps the Rust package version, and updates the release manifest. When the release PR is merged, Release Please creates the GitHub release and tag.
 
+## Version Bump Policy
+
+Each release version is selected from the level of changes merged since the last release. The repository uses Release Please's `default` versioning strategy with no pre-1.0 downgrade rules.
+
+| Change level | Commit signal | Version change | Example from `0.2.0` |
+| --- | --- | --- | --- |
+| Bug fix | `fix:` | Patch | `0.2.0` -> `0.2.1` |
+| Feature | `feat:` | Minor | `0.2.0` -> `0.3.0` |
+| Breaking change | `feat!:`, `fix!:`, or `BREAKING CHANGE:` | Major | `0.2.0` -> `1.0.0` |
+
+Release Please applies the highest required level in a release. If one release contains fixes and features, the release is minor. If it contains any breaking change, the release is major.
+
+The release PR updates all tracked version files together:
+
+- `Cargo.toml`
+- `Cargo.lock`
+- `.release-please-manifest.json`
+- `CHANGELOG.md`
+
 Use Conventional Commit prefixes so the release pipeline can classify changes:
 
 ```text
