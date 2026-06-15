@@ -65,6 +65,8 @@
           ];
 
           runStaticChecks = ''
+            TMPDIR="''${TMPDIR:-$(mktemp -d)}"
+            export TMPDIR
             export HOME="$TMPDIR/home"
             export PRE_COMMIT_HOME="$TMPDIR/pre-commit"
             mkdir -p "$HOME" "$PRE_COMMIT_HOME"

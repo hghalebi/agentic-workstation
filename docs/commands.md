@@ -79,3 +79,17 @@ gitleaks detect --source . --no-git --redact --verbose
 ./scripts/verify-lockfile.sh
 ./scripts/audit-remote-installers.sh
 ```
+
+## Nix
+
+```bash
+nix --extra-experimental-features 'nix-command flakes' build
+./result/bin/agentic-workstation plan --profile coding-agent
+./result/bin/agentic-workstation verify-lockfile
+nix --extra-experimental-features 'nix-command flakes' run . -- plan --profile coding-agent
+nix --extra-experimental-features 'nix-command flakes' run .#check
+nix --extra-experimental-features 'nix-command flakes' flake check
+nix --extra-experimental-features 'nix-command flakes' develop
+```
+
+The Nix flake builds the Rust CLI and validation tooling. Use `./install-agentic-tools.sh` for the full Ubuntu workstation install and system configuration.

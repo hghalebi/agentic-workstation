@@ -30,6 +30,13 @@ nix run .#check
 nix flake check
 ```
 
+If flakes are not enabled globally, pass the feature flags explicitly:
+
+```bash
+nix --extra-experimental-features 'nix-command flakes' build
+nix --extra-experimental-features 'nix-command flakes' run .#check
+```
+
 ## Who This Is For
 
 - Solo technical founders who want a fresh AI coding VM in minutes.
@@ -93,6 +100,37 @@ From a non-root shell:
 ```bash
 sudo ./install-agentic-tools.sh
 ```
+
+## Nix Usage
+
+Use Nix when you want a reproducible build or validation environment for the repository itself:
+
+```bash
+nix --extra-experimental-features 'nix-command flakes' build
+./result/bin/agentic-workstation --help
+```
+
+Run the Rust CLI through the flake without creating `./result`:
+
+```bash
+nix --extra-experimental-features 'nix-command flakes' run . -- plan --profile coding-agent
+nix --extra-experimental-features 'nix-command flakes' run . -- verify-lockfile
+```
+
+Run the static validation bundle:
+
+```bash
+nix --extra-experimental-features 'nix-command flakes' run .#check
+nix --extra-experimental-features 'nix-command flakes' flake check
+```
+
+Open a development shell with the project check and Rust tools:
+
+```bash
+nix --extra-experimental-features 'nix-command flakes' develop
+```
+
+Nix currently builds and validates the repository CLI and check tooling. The full workstation bootstrap still uses `./install-agentic-tools.sh` because it installs and configures system tools, shell settings, auth CLIs, manifests, and optional workspace hydration.
 
 ## Options
 
