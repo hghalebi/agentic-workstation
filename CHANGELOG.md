@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Refreshed documentation structure for clearer install, Nix, validation, and operations workflows.
+- Added a one-command Nix bootstrap script that installs Nix when needed, clones the repo, builds the CLI, runs checks, and realizes the development shell packages.
 
 ## v0.1.1 - 2026-06-12
 

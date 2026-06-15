@@ -42,6 +42,12 @@ apt-get install -y ca-certificates gnupg lsb-release curl wget unzip git gh jq r
 
 ## Nix
 
+Bootstrap Nix, clone the repository, build the CLI, run checks, and download the development shell packages:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/hghalebi/agentic-workstation/main/scripts/bootstrap-nix.sh | bash
+```
+
 The `runtimes` module installs Nix from Ubuntu packages:
 
 ```bash

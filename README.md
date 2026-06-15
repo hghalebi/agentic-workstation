@@ -124,6 +124,12 @@ sudo ./install-agentic-tools.sh
 Use Nix when you want a reproducible build or validation environment for the repository itself:
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/hghalebi/agentic-workstation/main/scripts/bootstrap-nix.sh | bash
+```
+
+The Nix bootstrapper installs Nix with apt when it is missing, clones the repo into `$HOME/agentic-workstation`, builds the CLI, runs `nix run .#check`, and realizes the development shell packages with `nix develop --command true`.
+
+```bash
 nix --extra-experimental-features 'nix-command flakes' build
 ./result/bin/agentic-workstation --help
 ```
